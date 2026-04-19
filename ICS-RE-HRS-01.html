@@ -1,0 +1,1506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICS-ICS-re-HRS-01 | OT/ICS Threat Detection</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0d12;
+    --panel: #0f1520;
+    --panel2: #111827;
+    --border: #1e2d45;
+    --border2: #243550;
+    --accent-red: #e63946;
+    --accent-orange: #f4a261;
+    --accent-yellow: #f9c74f;
+    --accent-green: #43aa8b;
+    --accent-blue: #4895ef;
+    --accent-cyan: #4cc9f0;
+    --accent-purple: #7209b7;
+    --text: #c8d6e8;
+    --text-dim: #6b7f9a;
+    --text-bright: #eaf2ff;
+    --mono: 'Share Tech Mono', monospace;
+    --head: 'Barlow Condensed', sans-serif;
+    --body: 'Barlow', sans-serif;
+    --glow-red: 0 0 12px rgba(230,57,70,0.4);
+    --glow-blue: 0 0 12px rgba(72,149,239,0.3);
+    --glow-orange: 0 0 12px rgba(244,162,97,0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 13px;
+    line-height: 1.5;
+    min-width: 1100px;
+  }
+
+  /* ─── HEADER ─── */
+  .header {
+    background: linear-gradient(135deg, #0a0d12 0%, #0f1a2e 60%, #12203a 100%);
+    border-bottom: 2px solid var(--accent-red);
+    padding: 18px 28px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(90deg, transparent 0, transparent 59px, rgba(30,45,70,0.25) 60px);
+    pointer-events: none;
+  }
+  .header-top {
+    display: flex; align-items: flex-start; gap: 20px;
+    position: relative;
+  }
+  .use-case-label {
+    font-family: var(--head);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .main-id {
+    font-family: var(--head);
+    font-size: 58px;
+    font-weight: 900;
+    color: var(--accent-red);
+    line-height: 1;
+    text-shadow: var(--glow-red);
+    letter-spacing: -1px;
+  }
+  .main-title-block { flex: 1; }
+  .main-title {
+    font-family: var(--head);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-bright);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    line-height: 1.2;
+    margin-top: 8px;
+  }
+  .recon-badge {
+    background: linear-gradient(135deg, #1a2a1a, #243824);
+    border: 1.5px solid var(--accent-green);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-family: var(--head);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent-green);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 0 10px rgba(67,170,139,0.25);
+    white-space: nowrap;
+    align-self: flex-start;
+    margin-top: 4px;
+  }
+  .recon-badge::before { content: '⬡'; font-size: 16px; }
+
+  /* Meta strip */
+  .meta-strip {
+    display: flex; gap: 0;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-top: 14px;
+    overflow: hidden;
+    position: relative;
+  }
+  .meta-item {
+    flex: 1;
+    padding: 10px 16px;
+    border-right: 1px solid var(--border);
+    display: flex; gap: 10px; align-items: center;
+  }
+  .meta-item:last-child { border-right: none; }
+  .meta-icon { font-size: 20px; opacity: 0.8; }
+  .meta-label {
+    font-family: var(--head);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: block;
+  }
+  .meta-value {
+    font-family: var(--head);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-bright);
+    display: block;
+    margin-top: 1px;
+  }
+  .meta-value.red { color: var(--accent-red); }
+  .meta-value.yellow { color: var(--accent-yellow); }
+  .meta-item.alert { background: rgba(230,57,70,0.07); }
+
+  /* ─── MAIN LAYOUT ─── */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 0;
+  }
+  .left-col { padding: 18px 0 18px 18px; display: flex; flex-direction: column; gap: 14px; }
+  .right-col { padding: 18px 18px 18px 14px; display: flex; flex-direction: column; gap: 14px; border-left: 1px solid var(--border); }
+
+  /* ─── PANELS ─── */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel-header h2 {
+    font-family: var(--head);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+  }
+  .panel-header .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent-cyan);
+    box-shadow: 0 0 6px var(--accent-cyan);
+    flex-shrink: 0;
+  }
+  .panel-body { padding: 14px; }
+
+  /* ─── DESCRIPTION ─── */
+  .description p {
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.65;
+    margin-bottom: 8px;
+  }
+  .description p:last-child { margin-bottom: 0; }
+  .description strong { color: var(--text-bright); font-weight: 600; }
+  .highlight-box {
+    background: rgba(72,149,239,0.07);
+    border-left: 3px solid var(--accent-blue);
+    border-radius: 0 4px 4px 0;
+    padding: 8px 12px;
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+  }
+
+  /* ─── ATTACK DIAGRAM ─── */
+  .attack-diagram {
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: radial-gradient(ellipse at 30% 50%, rgba(230,57,70,0.06) 0%, transparent 70%);
+  }
+  .attacker-box {
+    background: linear-gradient(135deg, #1a0a0a, #2a0f0f);
+    border: 2px solid var(--accent-red);
+    border-radius: 8px;
+    padding: 12px 14px;
+    text-align: center;
+    min-width: 110px;
+    box-shadow: var(--glow-red);
+  }
+  .skull { font-size: 32px; display: block; margin-bottom: 4px; }
+  .attacker-label {
+    font-family: var(--head);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-red);
+    letter-spacing: 1.5px;
+    display: block;
+  }
+  .attacker-ip {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    display: block;
+    margin-top: 2px;
+  }
+  .segment-label {
+    font-family: var(--head);
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--accent-orange);
+    letter-spacing: 1px;
+    display: block;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  /* Arrows + packets */
+  .arrows-area { flex: 1; display: flex; flex-direction: column; gap: 8px; position: relative; }
+  .arrow-row { display: flex; align-items: center; gap: 6px; }
+  .port-badge {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    min-width: 46px;
+    text-align: center;
+  }
+  .port-502 { background: rgba(230,57,70,0.2); color: var(--accent-red); border: 1px solid rgba(230,57,70,0.5); }
+  .port-3866 { background: rgba(244,162,97,0.2); color: var(--accent-orange); border: 1px solid rgba(244,162,97,0.5); }
+  .port-102 { background: rgba(72,149,239,0.2); color: var(--accent-blue); border: 1px solid rgba(72,149,239,0.5); }
+  .arrow-line {
+    flex: 1; height: 2px;
+    background: linear-gradient(90deg, rgba(230,57,70,0.6), rgba(230,57,70,0.1));
+    position: relative;
+  }
+  .arrow-line::after { content: '▶'; position: absolute; right: -2px; top: -7px; font-size: 14px; color: var(--accent-red); opacity: 0.7; }
+
+  /* Targets */
+  .targets { display: flex; flex-direction: column; gap: 8px; }
+  .target-box {
+    background: var(--panel2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 7px 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .target-icon { font-size: 18px; }
+  .target-name {
+    font-family: var(--head);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-bright);
+    display: block;
+  }
+  .target-ip {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    display: block;
+  }
+
+  /* ─── SPLUNK QUERY ─── */
+  .query-panel .panel-header h2 { color: var(--accent-orange); }
+  .query-panel .panel-header .dot { background: var(--accent-orange); box-shadow: 0 0 6px var(--accent-orange); }
+  .code-block {
+    background: #050810;
+    border: 1px solid rgba(72,149,239,0.15);
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+    overflow-x: auto;
+    position: relative;
+  }
+  .code-block::before {
+    content: 'SPL';
+    position: absolute; top: 8px; right: 12px;
+    font-size: 10px; letter-spacing: 2px;
+    color: rgba(72,149,239,0.3);
+    font-weight: 700;
+  }
+  .kw { color: #4cc9f0; }   /* pipe / commands */
+  .fn { color: #f9c74f; }   /* functions */
+  .str { color: #a8d8a8; }  /* strings/values */
+  .num { color: #f4a261; }  /* numbers */
+  .var { color: #c8d6e8; }  /* variables */
+  .cmt { color: #4a5568; font-style: italic; } /* comments */
+  .op { color: #7c9cbf; }   /* operators */
+
+  /* ─── EXPECTED OUTPUT TABLE ─── */
+  .output-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .output-table th {
+    font-family: var(--head);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 7px 12px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  .output-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(30,45,70,0.5);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+  }
+  .output-table tr:last-child td { border-bottom: none; }
+  .output-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .badge-medium {
+    background: rgba(249,199,79,0.15);
+    border: 1px solid var(--accent-yellow);
+    color: var(--accent-yellow);
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-family: var(--head);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .badge-high {
+    background: rgba(230,57,70,0.15);
+    border: 1px solid var(--accent-red);
+    color: var(--accent-red);
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-family: var(--head);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  /* ─── MONITORED PORTS ─── */
+  .ports-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 10px;
+  }
+  .port-row {
+    display: flex; align-items: baseline; gap: 6px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(30,45,70,0.4);
+  }
+  .port-num {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent-cyan);
+    min-width: 42px;
+    flex-shrink: 0;
+  }
+  .port-name {
+    font-size: 11.5px;
+    color: var(--text-dim);
+  }
+
+  /* ─── SEVERITY LOGIC ─── */
+  .severity-item {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+  }
+  .severity-item:last-child { margin-bottom: 0; }
+  .sev-medium { background: rgba(249,199,79,0.07); border: 1px solid rgba(249,199,79,0.25); }
+  .sev-high { background: rgba(230,57,70,0.07); border: 1px solid rgba(230,57,70,0.25); }
+  .sev-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .sev-dot.medium { background: var(--accent-yellow); box-shadow: 0 0 8px var(--accent-yellow); }
+  .sev-dot.high { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
+  .sev-label {
+    font-family: var(--head);
+    font-size: 16px;
+    font-weight: 800;
+    display: block;
+  }
+  .sev-label.medium { color: var(--accent-yellow); }
+  .sev-label.high { color: var(--accent-red); }
+  .sev-desc { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-top: 2px; }
+
+  /* ─── COVERED SCENARIOS ─── */
+  .scenario-list { display: flex; flex-direction: column; gap: 6px; }
+  .scenario-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 7px 10px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .scenario-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .scenario-title { font-weight: 600; color: var(--text-bright); font-size: 12px; }
+  .scenario-desc { color: var(--text-dim); font-size: 11.5px; }
+
+  /* ─── PLAYBOOK ─── */
+  .playbook-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .step-card {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex; gap: 10px; align-items: flex-start;
+    position: relative;
+    overflow: hidden;
+  }
+  .step-card::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+  .step-card.info::before { background: var(--accent-blue); }
+  .step-card.medium::before { background: var(--accent-yellow); }
+  .step-card.high::before { background: var(--accent-red); }
+  .step-card.success::before { background: var(--accent-green); }
+  .step-card.warning::before { background: var(--accent-orange); }
+  .step-card.neutral::before { background: var(--text-dim); }
+
+  .step-num {
+    font-family: var(--head);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    background: rgba(255,255,255,0.07);
+    padding: 2px 7px;
+    border-radius: 4px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .step-body { flex: 1; }
+  .step-title {
+    font-weight: 600;
+    color: var(--text-bright);
+    font-size: 12.5px;
+    line-height: 1.4;
+    display: block;
+  }
+  .step-detail {
+    font-size: 11.5px;
+    color: var(--text-dim);
+    margin-top: 3px;
+    line-height: 1.45;
+  }
+  .step-tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-family: var(--head);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+  .tag-medium { background: rgba(249,199,79,0.2); color: var(--accent-yellow); }
+  .tag-high { background: rgba(230,57,70,0.2); color: var(--accent-red); }
+  .tag-ok { background: rgba(67,170,139,0.2); color: var(--accent-green); }
+  .tag-warn { background: rgba(244,162,97,0.2); color: var(--accent-orange); }
+
+  /* ─── WHAT WE LOOK FOR ─── */
+  .look-for-panel {
+    border-left: 1px solid var(--border);
+    background: linear-gradient(135deg, var(--panel), #0d1a2e);
+    border-top: 1px solid var(--border);
+    padding: 14px 18px 14px 20px;
+    display: flex; gap: 16px; align-items: flex-start;
+  }
+  .look-icon { font-size: 36px; opacity: 0.8; flex-shrink: 0; }
+  .look-items { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+  .look-item {
+    display: flex; gap: 8px; align-items: flex-start;
+    font-size: 13px; color: var(--text);
+  }
+  .look-badge {
+    font-family: var(--head);
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    letter-spacing: 1px;
+  }
+  .lb-t { background: rgba(67,170,139,0.25); color: var(--accent-green); }
+  .lb-b { background: rgba(72,149,239,0.25); color: var(--accent-blue); }
+
+  /* ─── BOTTOM FULL WIDTH ─── */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    border-top: 1px solid var(--border);
+  }
+
+  /* divider */
+  .section-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border2), transparent);
+    margin: 4px 0;
+  }
+
+  /* packet label */
+  .packet-label {
+    font-family: var(--head);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .probes-header {
+    font-family: var(--head);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    text-align: center;
+    padding-bottom: 6px;
+  }
+
+  /* ─── ANIMATIONS ─── */
+
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes pulseGlow {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.55; }
+  }
+  @keyframes scanLine {
+    0%   { top: -4px; opacity: 0; }
+    5%   { opacity: 0.8; }
+    95%  { opacity: 0.8; }
+    100% { top: 100%; opacity: 0; }
+  }
+  @keyframes arrowFlow {
+    0%   { background-position: 0 0; }
+    100% { background-position: 40px 0; }
+  }
+  @keyframes glowPulseRed {
+    0%, 100% { text-shadow: 0 0 12px rgba(230,57,70,0.4); }
+    50%       { text-shadow: 0 0 32px rgba(230,57,70,0.9), 0 0 8px rgba(230,57,70,0.5); }
+  }
+  @keyframes rowFade {
+    from { opacity: 0; transform: translateX(-10px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes treeNodeDrop {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes borderPulse {
+    0%, 100% { box-shadow: 0 0 12px rgba(230,57,70,0.4); }
+    50%       { box-shadow: 0 0 24px rgba(230,57,70,0.8); }
+  }
+
+  /* Header */
+  .header { animation: fadeIn 0.6s ease both; }
+  .header::after {
+    content: '';
+    position: absolute; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(76,201,240,0.45), transparent);
+    pointer-events: none;
+    animation: scanLine 4s ease-in-out infinite;
+  }
+
+  /* Main ID glow pulse */
+  .main-id { animation: glowPulseRed 3s ease-in-out infinite; }
+
+  /* Recon badge */
+  .recon-badge { animation: fadeIn 0.8s ease 0.3s both; }
+
+  /* Dot indicators pulse */
+  .panel-header .dot { animation: pulseGlow 2s ease-in-out infinite; }
+
+  /* Panels stagger entrance */
+  .left-col  .panel:nth-child(1) { animation: fadeSlideUp 0.5s ease 0.10s both; }
+  .left-col  .panel:nth-child(2) { animation: fadeSlideUp 0.5s ease 0.20s both; }
+  .left-col  .panel:nth-child(3) { animation: fadeSlideUp 0.5s ease 0.30s both; }
+  .left-col  .panel:nth-child(4) { animation: fadeSlideUp 0.5s ease 0.40s both; }
+  .right-col .panel:nth-child(1) { animation: fadeSlideUp 0.5s ease 0.20s both; }
+  .right-col .panel:nth-child(2) { animation: fadeSlideUp 0.5s ease 0.35s both; }
+  .right-col .panel:nth-child(3) { animation: fadeSlideUp 0.5s ease 0.50s both; }
+
+  /* Panel hover */
+  .panel { transition: box-shadow 0.25s ease, border-color 0.25s ease; }
+  .panel:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.4); border-color: var(--border2); }
+
+  /* Attacker box pulse */
+  .attacker-box { animation: borderPulse 2.5s ease-in-out infinite; }
+
+  /* Flowing dashed arrows */
+  .arrow-line {
+    background: repeating-linear-gradient(
+      90deg,
+      rgba(230,57,70,0.75) 0px, rgba(230,57,70,0.75) 12px,
+      transparent 12px, transparent 20px
+    );
+    background-size: 40px 2px;
+    animation: arrowFlow 0.8s linear infinite;
+  }
+
+  /* Targets slide in */
+  .target-box:nth-child(1) { animation: slideInRight 0.5s ease 0.40s both; }
+  .target-box:nth-child(2) { animation: slideInRight 0.5s ease 0.55s both; }
+  .target-box:nth-child(3) { animation: slideInRight 0.5s ease 0.70s both; }
+  .target-box { transition: background 0.2s ease, border-color 0.2s ease; }
+  .target-box:hover { background: rgba(72,149,239,0.08); border-color: rgba(72,149,239,0.4); }
+
+  /* Table rows stagger */
+  .output-table tbody tr:nth-child(1) { animation: rowFade 0.4s ease 0.50s both; }
+  .output-table tbody tr:nth-child(2) { animation: rowFade 0.4s ease 0.65s both; }
+  .output-table tbody tr:nth-child(3) { animation: rowFade 0.4s ease 0.80s both; }
+  .output-table tbody tr:nth-child(4) { animation: rowFade 0.4s ease 0.95s both; }
+  .output-table tbody tr:nth-child(5) { animation: rowFade 0.4s ease 1.10s both; }
+
+  /* Port rows */
+  .port-row { transition: background 0.15s ease; }
+  .port-row:hover { background: rgba(76,201,240,0.07); border-radius: 3px; }
+
+  /* Severity items */
+  .severity-item { transition: transform 0.2s ease; }
+  .severity-item:hover { transform: translateX(4px); }
+
+  /* Scenario items */
+  .scenario-item { transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease; }
+  .scenario-item:hover { background: rgba(72,149,239,0.06); border-color: rgba(72,149,239,0.25); transform: translateX(4px); }
+
+  /* Meta items */
+  .meta-item { transition: background 0.2s ease; }
+  .meta-item:hover { background: rgba(255,255,255,0.03); }
+
+  /* Badge high subtle pulse */
+  .badge-high { animation: pulseGlow 2.5s ease-in-out infinite; }
+
+  /* Decision tree nodes */
+  .dnode { animation: treeNodeDrop 0.4s ease both; transition: box-shadow 0.2s ease, border-color 0.2s ease; }
+  .dnode:hover { box-shadow: 0 0 18px rgba(76,201,240,0.18); border-color: rgba(76,201,240,0.45); }
+
+  /* Action boxes */
+  .abox { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .abox:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
+  .abox.raise:hover { box-shadow: 0 6px 18px rgba(230,57,70,0.22); }
+  .abox.close:hover { box-shadow: 0 6px 18px rgba(67,170,139,0.22); }
+  .abox.crown:hover { box-shadow: 0 6px 18px rgba(76,201,240,0.22); }
+
+  /* Step cards */
+  .step-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .step-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+
+  /* Look-for + decision tree section */
+  .look-for-panel { animation: fadeSlideUp 0.5s ease 0.6s both; }
+  .dt-section { animation: fadeSlideUp 0.5s ease 0.7s both; }
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <span class="use-case-label">OT/ICS Threat Detection · Use Case</span>
+      <div class="main-id">ICS-re-HRS-01</div>
+    </div>
+    <div class="main-title-block">
+      <div class="main-title">Horizontal &amp; Vertical Scan Towards<br>Industrial Protocol Ports</div>
+    </div>
+    <div class="recon-badge">Reconnaissance</div>
+  </div>
+
+  <div class="meta-strip">
+    <div class="meta-item">
+      <span class="meta-icon">🎯</span>
+      <div>
+        <span class="meta-label">MITRE ATT&CK ICS</span>
+        <span class="meta-value red">T0846</span>
+        <span style="font-size:11px;color:var(--text-dim);">Remote System Discovery</span>
+      </div>
+    </div>
+    <div class="meta-item">
+      <span class="meta-icon">⛓</span>
+      <div>
+        <span class="meta-label">Kill Chain Phase</span>
+        <span class="meta-value">Reconnaissance</span>
+      </div>
+    </div>
+    <div class="meta-item">
+      <span class="meta-icon">📋</span>
+      <div>
+        <span class="meta-label">Data Sources</span>
+        <span class="meta-value">Network Logs</span>
+      </div>
+    </div>
+    <div class="meta-item">
+      <span class="meta-icon">🕐</span>
+      <div>
+        <span class="meta-label">Search Window</span>
+        <span class="meta-value">Sliding — 10 min</span>
+      </div>
+    </div>
+    <div class="meta-item alert">
+      <span class="meta-icon">🔔</span>
+      <div>
+        <span class="meta-label">Alerting Time</span>
+        <span class="meta-value yellow">&lt; 2 min after threshold</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ MAIN BODY ═══════════════════ -->
+<div class="main">
+  <div class="left-col">
+
+    <!-- DESCRIPTION -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot"></div><h2>Description</h2></div>
+      <div class="panel-body description">
+        <p>A single source within the <strong>OT/PCN segment</strong> sends probe packets targeting industrial protocol ports. This rule detects two attack patterns: <strong>horizontal scans</strong> (one port, many IPs) and <strong>vertical scans</strong> (one IP, many ports) — as well as combined hybrid patterns.</p>
+        <p>Three evasion variants are covered: <strong>slow scan</strong> distributed over time, <strong>time-window boundary</strong> evasion, and <strong>hybrid scanning</strong> with mixed destinations and ports. The <strong>ScanType</strong> column in the output classifies each alert automatically.</p>
+        <div class="highlight-box">A <strong>10-minute sliding window</strong> captures all patterns in a single SPL query. The response and analysis logic is identical for both scan types — only the classification label differs.</div>
+      </div>
+    </div>
+
+    <!-- ATTACK DIAGRAM -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot" style="background:#e63946;box-shadow:0 0 6px #e63946"></div><h2 style="color:#e63946">Attack Diagram</h2></div>
+      <div class="attack-diagram">
+        <div class="attacker-box">
+          <span class="skull">💀</span>
+          <span class="attacker-label">ATTACKER</span>
+          <span class="attacker-ip">192.168.69.50</span>
+          <span class="segment-label">Inside OT/PCN Segment</span>
+        </div>
+        <div class="arrows-area">
+          <div class="probes-header">◀ PROBE PACKETS ▶</div>
+          <div class="arrow-row">
+            <div class="port-badge port-502">:502</div>
+            <div class="arrow-line"></div>
+          </div>
+          <div class="arrow-row">
+            <div class="port-badge port-3866">:3866</div>
+            <div class="arrow-line"></div>
+          </div>
+          <div class="arrow-row">
+            <div class="port-badge port-102">:102</div>
+            <div class="arrow-line"></div>
+          </div>
+          <div style="text-align:center;margin-top:4px">
+            <span style="font-size:11px;color:var(--text-dim);">… additional ports</span>
+          </div>
+        </div>
+        <div class="targets">
+          <div class="target-box">
+            <span class="target-icon">🖥</span>
+            <div>
+              <span class="target-name">PLC</span>
+              <span class="target-ip">192.168.69.10</span>
+            </div>
+          </div>
+          <div class="target-box">
+            <span class="target-icon">🖥</span>
+            <div>
+              <span class="target-name">HMI</span>
+              <span class="target-ip">192.168.69.20</span>
+            </div>
+          </div>
+          <div class="target-box">
+            <span class="target-icon">📟</span>
+            <div>
+              <span class="target-name">RTU</span>
+              <span class="target-ip">192.168.69.30</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPLUNK QUERY -->
+    <div class="panel query-panel">
+      <div class="panel-header"><div class="dot"></div><h2>Splunk Query — Horizontal &amp; Vertical Scan Detection (Network Logs)</h2></div>
+      <div class="panel-body">
+        <div class="code-block"><pre>
+<span class="kw">index</span>=network <span class="kw">sourcetype</span>=network_logs
+    dest_port <span class="kw">IN</span> (<span class="num">102</span>, <span class="num">502</span>, <span class="num">2222</span>, <span class="num">2404</span>, <span class="num">4840</span>, <span class="num">4843</span>, <span class="num">9600</span>,
+                  <span class="num">1911</span>, <span class="num">4911</span>, <span class="num">26000</span>, <span class="num">44818</span>, <span class="num">48898</span>, <span class="num">34980</span>)
+<span class="kw">|</span> <span class="fn">streamstats</span> time_window=<span class="num">10</span>m
+    <span class="fn">dc</span>(dest_ip)        <span class="kw">AS</span> Destinations
+    <span class="fn">dc</span>(dest_port)      <span class="kw">AS</span> Ports
+    <span class="fn">values</span>(dest_ip)   <span class="kw">AS</span> DiscoveredHosts
+    <span class="fn">values</span>(dest_port) <span class="kw">AS</span> DiscoveredPorts
+    <span class="fn">values</span>(action)    <span class="kw">AS</span> Action
+    <span class="kw">BY</span> src_ip
+<span class="kw">|</span> <span class="fn">where</span> Destinations >= <span class="num">3</span> <span class="kw">OR</span> Ports >= <span class="num">3</span>
+<span class="kw">|</span> <span class="fn">eval</span> ScanType = <span class="fn">case</span>(
+    Destinations >= <span class="num">3</span> <span class="kw">AND</span> Ports >= <span class="num">2</span>, <span class="str">"HORIZONTAL + VERTICAL"</span>,
+    Destinations >= <span class="num">3</span>,                 <span class="str">"HORIZONTAL"</span>,
+    Ports         >= <span class="num">3</span>,                 <span class="str">"VERTICAL"</span>)
+<span class="kw">|</span> <span class="fn">eval</span> Severity = <span class="fn">case</span>(
+    Destinations >= <span class="num">3</span> <span class="kw">AND</span> Ports >= <span class="num">2</span>, <span class="str">"HIGH"</span>,
+    Ports         >= <span class="num">4</span>,                 <span class="str">"HIGH"</span>,
+    <span class="fn">true</span>(),                             <span class="str">"MEDIUM"</span>)
+<span class="kw">|</span> <span class="fn">table</span> src_ip, Destinations, Ports, DiscoveredHosts, DiscoveredPorts, Action, ScanType, Severity
+</pre></div>
+        <!-- Scan type legend -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <div style="background:rgba(230,57,70,0.08);border:1px solid rgba(230,57,70,0.3);border-radius:5px;padding:5px 11px;font-size:11.5px">
+            <span style="font-family:var(--mono);color:var(--accent-red);font-weight:700">HORIZONTAL</span>
+            <span style="color:var(--text-dim);margin-left:6px">1 port → many IPs</span>
+          </div>
+          <div style="background:rgba(76,201,240,0.08);border:1px solid rgba(76,201,240,0.3);border-radius:5px;padding:5px 11px;font-size:11.5px">
+            <span style="font-family:var(--mono);color:var(--accent-cyan);font-weight:700">VERTICAL</span>
+            <span style="color:var(--text-dim);margin-left:6px">1 IP → many ports</span>
+          </div>
+          <div style="background:rgba(244,162,97,0.08);border:1px solid rgba(244,162,97,0.3);border-radius:5px;padding:5px 11px;font-size:11.5px">
+            <span style="font-family:var(--mono);color:var(--accent-orange);font-weight:700">HORIZONTAL + VERTICAL</span>
+            <span style="color:var(--text-dim);margin-left:6px">many IPs → many ports</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPECTED OUTPUT -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot" style="background:#43aa8b;box-shadow:0 0 6px #43aa8b"></div><h2 style="color:#43aa8b">Expected Output</h2></div>
+      <div class="panel-body" style="padding:0">
+        <table class="output-table">
+          <thead>
+            <tr>
+              <th>src_ip</th>
+              <th style="text-align:center">Dest.</th>
+              <th style="text-align:center">Ports</th>
+              <th>DiscoveredHosts</th>
+              <th>DiscoveredPorts</th>
+              <th style="text-align:center">Action</th>
+              <th>ScanType</th>
+              <th>Severity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- ROW 1: Horizontal MEDIUM — 3 IPs, 1 port -->
+            <tr>
+              <td style="font-family:var(--mono);color:var(--accent-cyan)">192.168.69.50</td>
+              <td style="text-align:center;font-weight:700;color:var(--text-bright)">3</td>
+              <td style="text-align:center;font-weight:700;color:var(--text-bright)">1</td>
+              <td style="font-family:var(--mono);font-size:11px">192.168.69.10, .14, .20</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--accent-orange)">502</td>
+              <td style="text-align:center"><span style="color:var(--accent-yellow);font-size:11px;font-weight:600">Allow</span></td>
+              <td><span style="font-family:var(--mono);font-size:11px;color:var(--accent-red);background:rgba(230,57,70,0.12);padding:2px 7px;border-radius:3px;border:1px solid rgba(230,57,70,0.3)">HORIZONTAL</span></td>
+              <td><span class="badge-medium">● MEDIUM</span></td>
+            </tr>
+            <!-- ROW 2: Vertical MEDIUM — 1 IP, 3 ports -->
+            <tr>
+              <td style="font-family:var(--mono);color:var(--accent-cyan)">192.168.69.22</td>
+              <td style="text-align:center;font-weight:700;color:var(--text-bright)">1</td>
+              <td style="text-align:center;font-weight:700;color:var(--text-bright)">3</td>
+              <td style="font-family:var(--mono);font-size:11px">192.168.69.10</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--accent-orange)">102, 502, 4840</td>
+              <td style="text-align:center"><span style="color:var(--accent-yellow);font-size:11px;font-weight:600">Allow</span></td>
+              <td><span style="font-family:var(--mono);font-size:11px;color:var(--accent-cyan);background:rgba(76,201,240,0.12);padding:2px 7px;border-radius:3px;border:1px solid rgba(76,201,240,0.3)">VERTICAL</span></td>
+              <td><span class="badge-medium">● MEDIUM</span></td>
+            </tr>
+            <!-- ROW 3: Vertical HIGH — 1 IP, 4+ ports -->
+            <tr>
+              <td style="font-family:var(--mono);color:var(--accent-cyan)">192.168.69.22</td>
+              <td style="text-align:center;font-weight:700;color:var(--text-bright)">1</td>
+              <td style="text-align:center;font-weight:700;color:var(--text-bright)">4</td>
+              <td style="font-family:var(--mono);font-size:11px">192.168.69.10</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--accent-orange)">102, 502, 4840, 44818</td>
+              <td style="text-align:center"><span style="color:var(--accent-red);font-size:11px;font-weight:600">Allow</span></td>
+              <td><span style="font-family:var(--mono);font-size:11px;color:var(--accent-cyan);background:rgba(76,201,240,0.12);padding:2px 7px;border-radius:3px;border:1px solid rgba(76,201,240,0.3)">VERTICAL</span></td>
+              <td><span class="badge-high">● HIGH</span></td>
+            </tr>
+            <!-- ROW 4: Horizontal HIGH — 4 IPs, 1 port -->
+            <tr>
+              <td style="font-family:var(--mono);color:var(--accent-cyan)">192.168.69.50</td>
+              <td style="text-align:center;font-weight:700;color:var(--text-bright)">4</td>
+              <td style="text-align:center;font-weight:700;color:var(--text-bright)">1</td>
+              <td style="font-family:var(--mono);font-size:11px">192.168.69.10, .14, .20, .30</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--accent-orange)">502</td>
+              <td style="text-align:center"><span style="color:var(--accent-red);font-size:11px;font-weight:600">Deny</span></td>
+              <td><span style="font-family:var(--mono);font-size:11px;color:var(--accent-red);background:rgba(230,57,70,0.12);padding:2px 7px;border-radius:3px;border:1px solid rgba(230,57,70,0.3)">HORIZONTAL</span></td>
+              <td><span class="badge-medium">● MEDIUM</span></td>
+            </tr>
+            <!-- ROW 5: Combined HIGH -->
+            <tr>
+              <td style="font-family:var(--mono);color:var(--accent-cyan)">192.168.69.55</td>
+              <td style="text-align:center;font-weight:700;color:var(--text-bright)">4</td>
+              <td style="text-align:center;font-weight:700;color:var(--text-bright)">3</td>
+              <td style="font-family:var(--mono);font-size:11px">192.168.69.10, .14, .20, .30</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--accent-orange)">502, 4840, 102</td>
+              <td style="text-align:center"><span style="color:var(--accent-red);font-size:11px;font-weight:600">Allow</span></td>
+              <td><span style="font-family:var(--mono);font-size:11px;color:var(--accent-orange);background:rgba(244,162,97,0.12);padding:2px 7px;border-radius:3px;border:1px solid rgba(244,162,97,0.3)">HORIZ + VERT</span></td>
+              <td><span class="badge-high">● HIGH</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <!-- Logic key -->
+        <div style="display:flex;gap:14px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--border);background:rgba(0,0,0,0.2)">
+          <span style="font-family:var(--head);font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase;align-self:center">Severity logic:</span>
+          <span style="font-size:11px;color:var(--text-dim)">HORIZ: Dest≥3 + Ports=1 → <span class="badge-medium" style="padding:1px 6px;font-size:10px">MED</span></span>
+          <span style="font-size:11px;color:var(--text-dim)">VERT: Ports≥3 → <span class="badge-medium" style="padding:1px 6px;font-size:10px">MED</span></span>
+          <span style="font-size:11px;color:var(--text-dim)">VERT: Ports≥4 → <span class="badge-high" style="padding:1px 6px;font-size:10px">HIGH</span></span>
+          <span style="font-size:11px;color:var(--text-dim)">COMBINED: Dest≥3 + Ports≥2 → <span class="badge-high" style="padding:1px 6px;font-size:10px">HIGH</span></span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /left-col -->
+
+  <div class="right-col">
+
+    <!-- MONITORED PORTS -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot" style="background:#7209b7;box-shadow:0 0 6px #7209b7"></div><h2 style="color:#c77dff">Monitored Ports</h2></div>
+      <div class="panel-body">
+        <div class="ports-grid">
+          <div class="port-row"><span class="port-num">502</span><span class="port-name">Modbus TCP</span></div>
+          <div class="port-row"><span class="port-num">1562</span><span class="port-name">POWark</span></div>
+          <div class="port-row"><span class="port-num">4840</span><span class="port-name">OPC-UA</span></div>
+          <div class="port-row"><span class="port-num">242</span><span class="port-name">WADD</span></div>
+          <div class="port-row"><span class="port-num">4843</span><span class="port-name">OPC-UA HTTPS</span></div>
+          <div class="port-row"><span class="port-num">590</span><span class="port-name">Red Ligo</span></div>
+          <div class="port-row"><span class="port-num">102</span><span class="port-name">S7comm</span></div>
+          <div class="port-row"><span class="port-num">4008</span><span class="port-name">DE SRTP</span></div>
+          <div class="port-row"><span class="port-num">44818</span><span class="port-name">EtherNet/IP</span></div>
+          <div class="port-row"><span class="port-num">13245</span><span class="port-name">OE SRTP</span></div>
+          <div class="port-row"><span class="port-num">2222</span><span class="port-name">EtherNet/IP UDP</span></div>
+          <div class="port-row"><span class="port-num">1099</span><span class="port-name">FF HSS</span></div>
+          <div class="port-row"><span class="port-num">26000</span><span class="port-name">DNP3</span></div>
+          <div class="port-row"><span class="port-num">1557</span><span class="port-name">ÅTacker/PLCbeat</span></div>
+          <div class="port-row"><span class="port-num">2404</span><span class="port-name">IEC-104</span></div>
+          <div class="port-row"><span class="port-num">4000</span><span class="port-name">Emtevee GA</span></div>
+          <div class="port-row"><span class="port-num">9600</span><span class="port-name">OMRON FINS</span></div>
+          <div class="port-row"><span class="port-num">4000</span><span class="port-name">RIMC CREET</span></div>
+          <div class="port-row"><span class="port-num">1911</span><span class="port-name">Niagara Fex</span></div>
+          <div class="port-row"><span class="port-num">44995</span><span class="port-name">JNI</span></div>
+          <div class="port-row"><span class="port-num">4911</span><span class="port-name">Niagara Fex TLS</span></div>
+          <div class="port-row"><span class="port-num">34900</span><span class="port-name">Siemens WinCC</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEVERITY LOGIC -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot" style="background:#f9c74f;box-shadow:0 0 6px #f9c74f"></div><h2 style="color:#f9c74f">Severity Logic</h2></div>
+      <div class="panel-body">
+        <div class="severity-item sev-medium">
+          <div class="sev-dot medium"></div>
+          <div>
+            <span class="sev-label medium">MEDIUM</span>
+            <div class="sev-desc">Exactly 3+ destinations scanning<br>a <strong style="color:var(--text)">single</strong> industrial port</div>
+          </div>
+        </div>
+        <div class="severity-item sev-high">
+          <div class="sev-dot high"></div>
+          <div>
+            <span class="sev-label high">HIGH</span>
+            <div class="sev-desc">More than 3 destinations, <strong style="color:var(--text)">or</strong><br>2+ destinations with 2+ distinct ports</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COVERED SCENARIOS -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot" style="background:#4895ef;box-shadow:0 0 6px #4895ef"></div><h2 style="color:#4895ef">Covered Scenarios</h2></div>
+      <div class="panel-body">
+        <div class="scenario-list">
+          <div class="scenario-item">
+            <span class="scenario-icon" style="color:#f9c74f">🟡</span>
+            <div>
+              <div class="scenario-title">Direct scan</div>
+              <div class="scenario-desc">3+ destinations, single port</div>
+            </div>
+          </div>
+          <div class="scenario-item">
+            <span class="scenario-icon" style="color:#e63946">🔴</span>
+            <div>
+              <div class="scenario-title">Wide scan</div>
+              <div class="scenario-desc">4+ destinations, single port</div>
+            </div>
+          </div>
+          <div class="scenario-item">
+            <span class="scenario-icon" style="color:#43aa8b">🐢</span>
+            <div>
+              <div class="scenario-title">Slow scan</div>
+              <div class="scenario-desc">3 destinations distributed over up to 10 minutes</div>
+            </div>
+          </div>
+          <div class="scenario-item">
+            <span class="scenario-icon" style="color:#4cc9f0">⧖</span>
+            <div>
+              <div class="scenario-title">Window boundary</div>
+              <div class="scenario-desc">Accumulation captured via sliding window</div>
+            </div>
+          </div>
+          <div class="scenario-item">
+            <span class="scenario-icon" style="color:#c77dff">⚡</span>
+            <div>
+              <div class="scenario-title">Hybrid</div>
+              <div class="scenario-desc">2 destinations with 2+ industrial ports</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /right-col -->
+</div><!-- /main -->
+
+<!-- ═══════════════════ WHAT WE LOOK FOR ═══════════════════ -->
+<div class="look-for-panel">
+  <span class="look-icon">🔍</span>
+  <div style="margin-right:16px">
+    <div style="font-family:var(--head);font-size:14px;font-weight:800;letter-spacing:2px;color:var(--text-bright);text-transform:uppercase;margin-bottom:8px">What We Look For</div>
+    <div class="look-items">
+      <div class="look-item">
+        <span class="look-badge lb-t">T</span>
+        <span>Validate if the source IP has previous alerts within the last <strong>72 hours</strong>; if yes, <strong>escalate alert level</strong> (+1 Severity Level).</span>
+      </div>
+      <div class="look-item">
+        <span class="look-badge lb-b">B</span>
+        <span>Verify if the IP had <strong>legitimate OT communications</strong> in the last <strong>24 hours</strong> (normal baseline check).</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════ DECISION TREE ═══════════════════ -->
+<style>
+  .dt-section {
+    border-top: 2px solid var(--border);
+    padding: 20px 22px 24px;
+    background: linear-gradient(180deg, #090c11, #0b0f1a);
+  }
+  .dt-title-row {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 6px;
+  }
+  .dt-title {
+    font-family: var(--head); font-size: 17px; font-weight: 900;
+    letter-spacing: 2.5px; color: var(--text-bright); text-transform: uppercase;
+  }
+  .dt-subtitle {
+    font-size: 12px; color: var(--text-dim); margin-bottom: 18px; line-height: 1.5;
+  }
+  /* Tree container */
+  .tree {
+    display: flex; flex-direction: column; align-items: center; gap: 0;
+    font-family: var(--body);
+  }
+  /* Connector lines */
+  .v-line { width: 2px; height: 22px; background: var(--border2); flex-shrink: 0; }
+  .v-line.red   { background: rgba(230,57,70,0.5); }
+  .v-line.green { background: rgba(67,170,139,0.5); }
+  .v-line.yellow{ background: rgba(249,199,79,0.5); }
+  .v-line.orange{ background: rgba(244,162,97,0.5); }
+  .v-line.cyan  { background: rgba(76,201,240,0.5); }
+
+  .branch-row {
+    display: flex; align-items: flex-start; justify-content: center; width: 100%; gap: 0;
+  }
+  .branch-col { display: flex; flex-direction: column; align-items: center; }
+  .h-line { height: 2px; flex: 1; background: var(--border2); margin-top: 0; align-self: flex-start; margin-top: 0; }
+  .h-line.red    { background: rgba(230,57,70,0.5); }
+  .h-line.green  { background: rgba(67,170,139,0.5); }
+
+  /* Decision node (diamond question) */
+  .dnode {
+    position: relative;
+    background: var(--panel2);
+    border: 1.5px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 16px;
+    text-align: center;
+    max-width: 340px;
+    width: 340px;
+  }
+  .dnode-step {
+    font-family: var(--head); font-size: 10px; font-weight: 800;
+    letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase;
+    display: block; margin-bottom: 3px;
+  }
+  .dnode-q {
+    font-size: 13px; font-weight: 600; color: var(--text-bright); line-height: 1.4;
+  }
+  .dnode-sub {
+    font-size: 11px; color: var(--text-dim); margin-top: 4px; line-height: 1.4;
+  }
+  /* diamond shape indicator */
+  .dnode::before {
+    content: '◆';
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    font-size: 12px; color: var(--accent-cyan);
+    background: #090c11; padding: 0 4px;
+  }
+
+  /* YES / NO labels */
+  .yn-row {
+    display: flex; justify-content: space-between; width: 340px; margin-top: 2px;
+  }
+  .yn { font-family: var(--head); font-size: 11px; font-weight: 800; letter-spacing: 1px; padding: 0 4px; }
+  .yn.yes { color: var(--accent-green); }
+  .yn.no  { color: var(--accent-red); }
+
+  /* Action boxes */
+  .abox {
+    border-radius: 7px; padding: 9px 13px; text-align: center;
+    border: 1.5px solid; max-width: 220px; width: 220px;
+    font-size: 12px; line-height: 1.45;
+  }
+  .abox-title { font-family: var(--head); font-size: 12px; font-weight: 800; letter-spacing: 1px; display: block; margin-bottom: 3px; }
+  .abox-desc  { font-size: 11px; color: var(--text-dim); }
+
+  .abox.close {
+    background: rgba(67,170,139,0.08); border-color: rgba(67,170,139,0.4);
+  }
+  .abox.close .abox-title { color: var(--accent-green); }
+
+  .abox.raise {
+    background: rgba(230,57,70,0.08); border-color: rgba(230,57,70,0.4);
+  }
+  .abox.raise .abox-title { color: var(--accent-red); }
+
+  .abox.escalate {
+    background: rgba(244,162,97,0.1); border-color: rgba(244,162,97,0.5);
+    max-width: 260px; width: 260px;
+  }
+  .abox.escalate .abox-title { color: var(--accent-orange); }
+
+  .abox.incident {
+    background: rgba(230,57,70,0.14); border-color: var(--accent-red);
+    max-width: 300px; width: 300px; box-shadow: 0 0 14px rgba(230,57,70,0.25);
+  }
+  .abox.incident .abox-title { color: var(--accent-red); font-size: 14px; }
+
+  .abox.info {
+    background: rgba(72,149,239,0.08); border-color: rgba(72,149,239,0.4);
+  }
+  .abox.info .abox-title { color: var(--accent-blue); }
+
+  .abox.crown {
+    background: rgba(76,201,240,0.08); border-color: rgba(76,201,240,0.4);
+    max-width: 260px; width: 260px;
+  }
+  .abox.crown .abox-title { color: var(--accent-cyan); }
+
+  /* Severity badge inline */
+  .sev-inline {
+    display: inline-block; font-family: var(--head); font-size: 10px;
+    font-weight: 800; padding: 1px 7px; border-radius: 3px; letter-spacing: 1px;
+    vertical-align: middle; margin-left: 3px;
+  }
+  .sev-m { background: rgba(249,199,79,0.2);  color: var(--accent-yellow); }
+  .sev-h { background: rgba(230,57,70,0.2);   color: var(--accent-red); }
+  .sev-c { background: rgba(230,57,70,0.35);  color: #ff6b6b; border: 1px solid var(--accent-red); }
+
+  /* Wide branch container */
+  .wide-branch {
+    display: flex; align-items: flex-start; gap: 28px; justify-content: center;
+    width: 100%;
+  }
+  .wide-col { display: flex; flex-direction: column; align-items: center; }
+
+  /* Escalation methods */
+  .esc-methods {
+    display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 6px;
+  }
+  .esc-chip {
+    background: rgba(244,162,97,0.12); border: 1px solid rgba(244,162,97,0.3);
+    border-radius: 4px; padding: 2px 8px;
+    font-family: var(--head); font-size: 10px; font-weight: 700;
+    color: var(--accent-orange); letter-spacing: 0.5px;
+  }
+
+  /* Critical IRP box */
+  .irp-box {
+    background: linear-gradient(135deg, rgba(230,57,70,0.12), rgba(180,0,20,0.08));
+    border: 2px solid var(--accent-red);
+    border-radius: 10px; padding: 14px 18px;
+    max-width: 440px; text-align: center;
+    box-shadow: 0 0 24px rgba(230,57,70,0.2);
+  }
+  .irp-box .irp-title {
+    font-family: var(--head); font-size: 16px; font-weight: 900;
+    color: var(--accent-red); letter-spacing: 2px; text-transform: uppercase;
+    display: block; margin-bottom: 6px;
+  }
+  .irp-box .irp-desc { font-size: 12px; color: var(--text); line-height: 1.6; }
+  .irp-steps {
+    display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 8px;
+  }
+  .irp-step {
+    background: rgba(230,57,70,0.15); border: 1px solid rgba(230,57,70,0.4);
+    border-radius: 4px; padding: 3px 9px;
+    font-size: 11px; color: #ff8888; font-weight: 600;
+  }
+
+  /* legend */
+  .tree-legend {
+    display: flex; gap: 16px; flex-wrap: wrap; margin-top: 18px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    justify-content: center;
+  }
+  .leg-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); }
+  .leg-dot  { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+</style>
+
+<div class="dt-section">
+  <div class="dt-title-row">
+    <span style="font-size:24px">🌳</span>
+    <div>
+      <div class="dt-title">Detection Analysis — Decision Tree</div>
+    </div>
+  </div>
+  <div class="dt-subtitle">
+    This detection generates a <strong style="color:var(--accent-blue)">Security Event</strong> — applicable to both <strong style="color:var(--accent-red)">Horizontal</strong> and <strong style="color:var(--accent-cyan)">Vertical</strong> scan types. Walk the tree top-to-bottom. Each node may raise severity.
+    If severity reaches <strong style="color:var(--accent-red)">CRITICAL</strong> at any point → execute the <strong style="color:var(--accent-red)">Incident Response Plan immediately</strong>.
+  </div>
+
+  <div class="tree">
+
+    <!-- ── START NODE ── -->
+    <div style="background:rgba(72,149,239,0.12);border:2px solid rgba(72,149,239,0.5);border-radius:8px;padding:10px 22px;text-align:center;max-width:340px;">
+      <span style="font-family:var(--head);font-size:11px;letter-spacing:2px;color:var(--accent-blue);font-weight:800;display:block;margin-bottom:3px">DETECTION TRIGGERED</span>
+      <span style="font-size:13px;color:var(--text-bright);font-weight:600">Security Event — ICS-re-HRS-01</span>
+      <div style="margin-top:6px;display:flex;justify-content:center;gap:8px">
+        <span class="sev-inline sev-m">MEDIUM</span>
+        <span style="color:var(--text-dim);font-size:11px;align-self:center">or</span>
+        <span class="sev-inline sev-h">HIGH</span>
+      </div>
+    </div>
+    <div class="v-line"></div>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- STEP 1 — Prior alerts -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="dnode">
+      <span class="dnode-step">Step 1 · Historical Context</span>
+      <div class="dnode-q">Does this IP have prior alerts in the last <strong>72 hours</strong>?</div>
+      <div class="dnode-sub">Query SIEM for previous alerts from this source IP.</div>
+    </div>
+    <div class="v-line"></div>
+    <div class="yn-row"><span class="yn yes">YES ↙</span><span class="yn no">NO ↘</span></div>
+
+    <div class="wide-branch">
+      <!-- YES branch -->
+      <div class="wide-col">
+        <div class="h-line red" style="width:80px;margin-top:11px"></div>
+      </div>
+      <div class="wide-col">
+        <div class="v-line red"></div>
+        <div class="abox raise" style="max-width:260px;width:260px">
+          <span class="abox-title">⬆ Raise Severity +1</span>
+          <div class="abox-desc">Recurrence confirms higher risk. Escalate immediately via <strong>all available channels</strong>:</div>
+          <div class="esc-methods">
+            <span class="esc-chip">📞 CALL</span>
+            <span class="esc-chip">📧 EMAIL</span>
+            <span class="esc-chip">💬 SIEM ALERT</span>
+            <span class="esc-chip">📟 PAGER</span>
+          </div>
+          <div class="abox-desc" style="margin-top:6px">Contact <strong>OT Operations Responsible</strong> immediately. Do not wait.</div>
+        </div>
+        <div class="v-line red"></div>
+        <div style="font-family:var(--head);font-size:10px;color:var(--text-dim);letter-spacing:1px">↓ CONTINUE TREE</div>
+      </div>
+      <div class="wide-col" style="align-self:center">
+        <div class="h-line" style="width:80px;margin-top:0px;background:rgba(67,170,139,0.4)"></div>
+      </div>
+      <div class="wide-col">
+        <div class="v-line green"></div>
+        <div class="abox close">
+          <span class="abox-title">✔ Keep Current Level</span>
+          <div class="abox-desc">No prior history. Maintain current severity. Continue analysis.</div>
+        </div>
+        <div class="v-line green"></div>
+        <div style="font-family:var(--head);font-size:10px;color:var(--text-dim);letter-spacing:1px">↓ CONTINUE TREE</div>
+      </div>
+    </div>
+    <div class="v-line"></div>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- STEP 2 — Asset Classification (moved from Step 4) -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="dnode">
+      <span class="dnode-step">Step 2 · Asset Criticality</span>
+      <div class="dnode-q">Is this IP classified as a <strong>Yellow</strong> or <strong>Crown Jewel</strong> asset?</div>
+      <div class="dnode-sub">Check asset inventory. Does this IP support a critical OT operation or process?</div>
+    </div>
+    <div class="v-line"></div>
+    <div class="yn-row"><span class="yn yes">YES ↙</span><span class="yn no">NO ↘</span></div>
+
+    <div class="wide-branch">
+      <div class="wide-col">
+        <div class="h-line red" style="width:80px;margin-top:11px"></div>
+      </div>
+      <div class="wide-col">
+        <div class="v-line red"></div>
+        <div class="abox crown" style="max-width:280px;width:280px">
+          <span class="abox-title">👑 Crown Jewel / Yellow Asset</span>
+          <div class="abox-desc" style="text-align:left">
+            <strong style="color:var(--accent-cyan)">Document in report:</strong><br>
+            · Asset name, IP, criticality tier<br>
+            · Critical process / operation supported<br>
+            · Operational impact if compromised<br><br>
+            <span class="sev-inline sev-h" style="margin:0">Raise Severity +1</span> — Crown Jewel assets demand elevated response priority.
+          </div>
+        </div>
+        <div class="v-line red"></div>
+        <div style="font-family:var(--head);font-size:10px;color:var(--text-dim);letter-spacing:1px">↓ CONTINUE TREE</div>
+      </div>
+      <div class="wide-col" style="align-self:center">
+        <div class="h-line" style="width:80px;background:rgba(67,170,139,0.4)"></div>
+      </div>
+      <div class="wide-col">
+        <div class="v-line green"></div>
+        <div class="abox close">
+          <span class="abox-title">✔ Standard Asset</span>
+          <div class="abox-desc">No criticality elevation required. Continue analysis.</div>
+        </div>
+        <div class="v-line green"></div>
+        <div style="font-family:var(--head);font-size:10px;color:var(--text-dim);letter-spacing:1px">↓ CONTINUE TREE</div>
+      </div>
+    </div>
+    <div class="v-line"></div>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- STEP 3 — OT Baseline -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="dnode">
+      <span class="dnode-step">Step 3 · OT Communication Baseline (last 24h)</span>
+      <div class="dnode-q">Does this IP have a <strong>normal OT communication baseline</strong> in the last 24 hours?</div>
+      <div class="dnode-sub">Check SIEM/network logs for regular OT protocol traffic from this source.</div>
+    </div>
+    <div class="v-line"></div>
+    <div class="yn-row"><span class="yn yes">YES ↙</span><span class="yn no">NO ↘</span></div>
+
+    <div class="wide-branch">
+      <div class="wide-col">
+        <div class="h-line" style="width:80px;margin-top:11px;background:rgba(249,199,79,0.5)"></div>
+      </div>
+      <div class="wide-col">
+        <div class="v-line yellow"></div>
+        <div class="abox info" style="max-width:260px;width:260px;border-color:rgba(249,199,79,0.4);background:rgba(249,199,79,0.07)">
+          <span class="abox-title" style="color:var(--accent-yellow)">⚠ Potential Known Activity</span>
+          <div class="abox-desc">Known baseline detected. May be legitimate OT behavior. <strong>Validate with OT Operations Plant responsible</strong> before closing. → Proceed to Step 4.</div>
+        </div>
+        <div class="v-line yellow"></div>
+        <div style="font-family:var(--head);font-size:10px;color:var(--text-dim);letter-spacing:1px">↓ CONTINUE TREE</div>
+      </div>
+      <div class="wide-col" style="align-self:center">
+        <div class="h-line red" style="width:80px"></div>
+      </div>
+      <div class="wide-col">
+        <div class="v-line red"></div>
+        <div class="abox raise">
+          <span class="abox-title">⬆ Raise Severity +1</span>
+          <div class="abox-desc">No baseline found — this IP has no history of normal OT communications. Strongly suspicious.</div>
+        </div>
+        <div class="v-line red"></div>
+        <div style="font-family:var(--head);font-size:10px;color:var(--text-dim);letter-spacing:1px">↓ CONTINUE TREE</div>
+      </div>
+    </div>
+    <div class="v-line"></div>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- STEP 4 — Validate with Operations -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="dnode">
+      <span class="dnode-step">Step 4 · Operations Validation</span>
+      <div class="dnode-q">Does the <strong>OT Operations team</strong> recognize this scanning activity as authorized or planned?</div>
+      <div class="dnode-sub">Contact operations responsible directly. Ask if any tool, process, or team member initiated this scan.</div>
+    </div>
+    <div class="v-line"></div>
+    <div class="yn-row"><span class="yn yes">YES ↙</span><span class="yn no">NO ↘</span></div>
+
+    <div class="wide-branch">
+      <div class="wide-col">
+        <div class="h-line green" style="width:80px;margin-top:11px"></div>
+      </div>
+      <div class="wide-col">
+        <div class="v-line green"></div>
+        <div class="abox close">
+          <span class="abox-title">✔ Close as False Positive</span>
+          <div class="abox-desc">Activity confirmed by Operations. Close ticket as <strong>False Positive — Known Activity</strong>. Document the authorized source.</div>
+        </div>
+      </div>
+      <div class="wide-col" style="align-self:center">
+        <div class="h-line red" style="width:80px"></div>
+      </div>
+      <div class="wide-col">
+        <div class="v-line red"></div>
+        <div class="abox raise">
+          <span class="abox-title">⬆ Raise Severity +1</span>
+          <div class="abox-desc">Ops team has <strong>no knowledge</strong> of this activity. Unauthorized scan confirmed. Continue escalation path.</div>
+        </div>
+        <div class="v-line red"></div>
+        <div style="font-family:var(--head);font-size:10px;color:var(--text-dim);letter-spacing:1px">↓ CONTINUE TREE</div>
+      </div>
+    </div>
+    <div class="v-line"></div>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- FINAL CLASSIFICATION -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:10px;padding:14px 20px;max-width:700px;width:100%;text-align:center;">
+      <div style="font-family:var(--head);font-size:12px;font-weight:800;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:10px">Final Severity → Classification</div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <div style="background:rgba(72,149,239,0.08);border:1px solid rgba(72,149,239,0.3);border-radius:7px;padding:10px 14px;max-width:180px;text-align:center">
+          <div style="font-family:var(--head);font-size:13px;font-weight:800;color:var(--accent-blue)">🔵 LOW / MEDIUM</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:4px">No escalation triggers met. Close as <strong style="color:var(--text)">Security Event — No Incident</strong>.</div>
+        </div>
+        <div style="background:rgba(249,199,79,0.08);border:1px solid rgba(249,199,79,0.3);border-radius:7px;padding:10px 14px;max-width:180px;text-align:center">
+          <div style="font-family:var(--head);font-size:13px;font-weight:800;color:var(--accent-yellow)">🟡 HIGH</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Multiple triggers. Escalate to senior analyst for <strong style="color:var(--text)">urgent classification</strong>. Do not wait.</div>
+        </div>
+        <div style="background:rgba(230,57,70,0.12);border:2px solid var(--accent-red);border-radius:7px;padding:10px 14px;max-width:220px;text-align:center;box-shadow:0 0 12px rgba(230,57,70,0.2)">
+          <div style="font-family:var(--head);font-size:14px;font-weight:900;color:var(--accent-red)">🔴 CRITICAL</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Execute <strong style="color:var(--accent-red)">Incident Response Plan immediately</strong>. Isolate source IP. Engage IR team. Preserve all evidence.</div>
+          <div class="irp-steps" style="margin-top:7px">
+            <span class="irp-step">ENGAGE IR</span>
+            <span class="irp-step">NOTIFY MGMT</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tree -->
+
+  <!-- Legend -->
+  <div class="tree-legend">
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(67,170,139,0.6)"></div> Severity keeps / event closes</div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(230,57,70,0.6)"></div> Severity +1 raised</div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(76,201,240,0.6)"></div> Crown Jewel / critical asset</div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(244,162,97,0.6)"></div> Escalation channels activated</div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(249,199,79,0.6)"></div> Validate with Operations</div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(230,57,70,0.9);border:1px solid #e63946"></div> CRITICAL → Execute IRP</div>
+  </div>
+
+</div>
+
+</body>
+</html>
