@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0090)file:///C:/Users/ruben/Downloads/NET-IDP-01%20_%20OT_ICS%20Duplicate%20IP%20Detection.html -->
+<!-- saved from url=(0048)file:///C:/Users/ruben/Downloads/NET-IDP-01.html -->
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -488,19 +488,11 @@
     <div class="panel query-panel">
       <div class="panel-header"><div class="dot"></div><h2>Splunk Query — Duplicate IP Detection · Simplified &amp; Performance-Optimized</h2></div>
       <div class="panel-body">
-        <div class="code-block"><pre><span class="cmt">﹃ Scheduled alert · every 1 min · earliest=-2m latest=now
-  Lookups required:
-    crown_jewels.csv    → fields: ip, mac, asset_name, criticality_tier
-    mac_ip_history.csv  → fields: mac, known_ip
-  Both CSVs are static enrichment tables — no join, no subsearch ﹄</span>
+        <div class="code-block"><pre>
 
-<span class="cmt">﹃ 1. BASE SEARCH — index/sourcetype filters first for performance
-      tstats is preferred but ARP/DHCP are often not CIM-mapped;
-      raw search kept narrow with earliest/latest and key filters   ﹄</span>
+
 <span class="kw">index</span>=network (<span class="kw">sourcetype</span>=arp_logs <span class="kw">OR</span> <span class="kw">sourcetype</span>=dhcp_logs <span class="kw">OR</span> <span class="kw">sourcetype</span>=network_logs)
-<span class="kw">earliest</span>=-2m <span class="kw">latest</span>=now
 
-<span class="cmt">﹃ 2. NORMALIZE — unify IP and MAC field names across sourcetypes ﹄</span>
 <span class="kw">|</span> <span class="fn">eval</span> src_ip  = <span class="fn">coalesce</span>(src_ip, assigned_ip),
        src_mac = <span class="fn">coalesce</span>(src_mac, client_mac),
        ConflictType = <span class="fn">case</span>(
@@ -508,19 +500,19 @@
            sourcetype=<span class="str">"dhcp_logs"</span>,    <span class="str">"DHCP_COLLISION"</span>,
            sourcetype=<span class="str">"network_logs"</span>, <span class="str">"DUAL_SOURCE_TRAFFIC"</span>)
 
-<span class="cmt">﹃ 3. DETECT DUPLICATE IP — count distinct MACs per IP in window ﹄</span>
+
 <span class="kw">|</span> <span class="fn">stats</span> <span class="fn">dc</span>(src_mac) <span class="kw">AS</span> UniqueMacs
         <span class="fn">values</span>(src_mac) <span class="kw">AS</span> MacList
         <span class="fn">values</span>(ConflictType) <span class="kw">AS</span> ConflictType
         <span class="kw">BY</span> src_ip
 <span class="kw">|</span> <span class="fn">where</span> UniqueMacs &gt;= <span class="num">2</span>
 
-<span class="cmt">﹃ 4. ENRICH — lookup replaces join; no subsearch, no performance hit ﹄</span>
+
 <span class="kw">|</span> <span class="fn">lookup</span> crown_jewels.csv   ip <span class="kw">AS</span> src_ip   OUTPUT asset_name, criticality_tier,
                                                      mac <span class="kw">AS</span> cj_mac
 <span class="kw">|</span> <span class="fn">lookup</span> mac_ip_history.csv mac <span class="kw">AS</span> src_mac  OUTPUT known_ip
 
-<span class="cmt">﹃ 5. CLASSIFY — MacStatus, Crown Jewel flag, CritReason, Severity ﹄</span>
+
 <span class="kw">|</span> <span class="fn">eval</span>
     IsCrownJewel = <span class="fn">if</span>(<span class="fn">isnotnull</span>(asset_name), <span class="str">"YES"</span>, <span class="str">"NO"</span>),
     MacStatus    = <span class="fn">case</span>(
