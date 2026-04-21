@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<!-- saved from url=(0090)file:///C:/Users/ruben/Downloads/NET-IDP-01%20_%20OT_ICS%20Duplicate%20IP%20Detection.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NET-IDP-01 | OT/ICS Duplicate IP Detection</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0d12; --panel: #0f1520; --panel2: #111827;
+    --border: #1e2d45; --border2: #243550;
+    --accent-red: #e63946; --accent-orange: #f4a261; --accent-yellow: #f9c74f;
+    --accent-green: #43aa8b; --accent-blue: #4895ef; --accent-cyan: #4cc9f0;
+    --text: #c8d6e8; --text-dim: #6b7f9a; --text-bright: #eaf2ff;
+    --mono: 'Share Tech Mono', monospace;
+    --head: 'Barlow Condensed', sans-serif;
+    --body: 'Barlow', sans-serif;
+    --glow-orange: 0 0 12px rgba(244,162,97,0.45);
+    --glow-red: 0 0 12px rgba(230,57,70,0.4);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:var(--body); font-size:13px; line-height:1.5; min-width:1100px; }
+
+  /* HEADER */
+  .header { background:linear-gradient(135deg,#0a0d12 0%,#0f1a2e 60%,#1a120f 100%); border-bottom:2px solid var(--accent-orange); padding:18px 28px 14px; position:relative; overflow:hidden; animation:fadeIn 0.6s ease both; }
+  .header::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:repeating-linear-gradient(90deg,transparent 0,transparent 59px,rgba(30,45,70,0.25) 60px); pointer-events:none; }
+  .header::after  { content:''; position:absolute; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,rgba(244,162,97,0.45),transparent); pointer-events:none; animation:scanLine 4s ease-in-out infinite; }
+  .header-top { display:flex; align-items:flex-start; gap:20px; position:relative; }
+  .use-case-label { font-family:var(--head); font-size:11px; font-weight:700; letter-spacing:3px; color:var(--text-dim); text-transform:uppercase; margin-bottom:3px; }
+  .main-id { font-family:var(--head); font-size:58px; font-weight:900; color:var(--accent-orange); line-height:1; text-shadow:var(--glow-orange); letter-spacing:-1px; animation:glowPulseOrange 3s ease-in-out infinite; }
+  .main-title-block { flex:1; }
+  .main-title { font-family:var(--head); font-size:22px; font-weight:800; color:var(--text-bright); letter-spacing:1px; text-transform:uppercase; line-height:1.2; margin-top:8px; }
+  .category-badge { background:linear-gradient(135deg,#1a1a0a,#2a2210); border:1.5px solid var(--accent-orange); border-radius:6px; padding:6px 14px; font-family:var(--head); font-size:13px; font-weight:700; color:var(--accent-orange); letter-spacing:2px; text-transform:uppercase; display:flex; align-items:center; gap:6px; box-shadow:0 0 10px rgba(244,162,97,0.25); white-space:nowrap; align-self:flex-start; margin-top:4px; animation:fadeIn 0.8s ease 0.3s both; }
+  .category-badge::before { content:'⬡'; font-size:16px; }
+  .meta-strip { display:flex; background:rgba(0,0,0,0.4); border:1px solid var(--border); border-radius:6px; margin-top:14px; overflow:hidden; }
+  .meta-item { flex:1; padding:10px 16px; border-right:1px solid var(--border); display:flex; gap:10px; align-items:center; transition:background 0.2s; }
+  .meta-item:hover { background:rgba(255,255,255,0.03); }
+  .meta-item:last-child { border-right:none; }
+  .meta-icon { font-size:20px; opacity:0.8; }
+  .meta-label { font-family:var(--head); font-size:10px; font-weight:700; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; display:block; }
+  .meta-value { font-family:var(--head); font-size:15px; font-weight:700; color:var(--text-bright); display:block; margin-top:1px; }
+  .meta-value.orange { color:var(--accent-orange); }
+  .meta-value.yellow { color:var(--accent-yellow); }
+  .meta-item.alert { background:rgba(244,162,97,0.07); }
+
+  /* LAYOUT */
+  .main { display:grid; grid-template-columns:1fr 340px; }
+  .left-col  { padding:18px 0 18px 18px; display:flex; flex-direction:column; gap:14px; }
+  .right-col { padding:18px 18px 18px 14px; display:flex; flex-direction:column; gap:14px; border-left:1px solid var(--border); }
+  .panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; overflow:hidden; transition:box-shadow 0.25s, border-color 0.25s; }
+  .panel:hover { box-shadow:0 4px 24px rgba(0,0,0,0.4); border-color:var(--border2); }
+  .panel-header { padding:8px 14px; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
+  .panel-header h2 { font-family:var(--head); font-size:13px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:var(--accent-cyan); }
+  .panel-header .dot { width:8px; height:8px; border-radius:50%; background:var(--accent-cyan); box-shadow:0 0 6px var(--accent-cyan); flex-shrink:0; animation:pulseGlow 2s ease-in-out infinite; }
+  .panel-body { padding:14px; }
+
+  /* DESCRIPTION */
+  .description p { color:var(--text); font-size:13px; line-height:1.65; margin-bottom:8px; }
+  .description p:last-child { margin-bottom:0; }
+  .description strong { color:var(--text-bright); font-weight:600; }
+  .highlight-box { background:rgba(244,162,97,0.07); border-left:3px solid var(--accent-orange); border-radius:0 4px 4px 0; padding:8px 12px; margin-top:10px; font-size:12.5px; color:var(--text-dim); }
+
+  /* ATTACK DIAGRAM */
+  .attack-diagram { padding:16px; display:flex; align-items:center; gap:12px; background:radial-gradient(ellipse at 30% 50%,rgba(244,162,97,0.06) 0%,transparent 70%); }
+  .attacker-box { background:linear-gradient(135deg,#1a0f0a,#2a1a0f); border:2px solid var(--accent-orange); border-radius:8px; padding:12px 14px; text-align:center; min-width:120px; box-shadow:var(--glow-orange); animation:borderPulseOrange 2.5s ease-in-out infinite; }
+  .ghost-icon { font-size:32px; display:block; margin-bottom:4px; }
+  .attacker-label { font-family:var(--head); font-size:11px; font-weight:700; color:var(--accent-orange); letter-spacing:1.5px; display:block; }
+  .attacker-ip { font-family:var(--mono); font-size:11px; color:var(--text-dim); display:block; margin-top:2px; }
+  .segment-label { font-family:var(--head); font-size:9px; font-weight:600; color:#ff4455; letter-spacing:1px; display:block; margin-top:4px; text-transform:uppercase; }
+  .arrows-area { flex:1; display:flex; flex-direction:column; gap:10px; }
+  .arrow-row { display:flex; align-items:center; gap:6px; }
+  .proto-badge { font-family:var(--mono); font-size:11px; font-weight:700; padding:3px 8px; border-radius:4px; min-width:70px; text-align:center; }
+  .proto-arp  { background:rgba(244,162,97,0.2); color:var(--accent-orange); border:1px solid rgba(244,162,97,0.5); }
+  .proto-dhcp { background:rgba(72,149,239,0.2);  color:var(--accent-blue);   border:1px solid rgba(72,149,239,0.5); }
+  .proto-icmp { background:rgba(249,199,79,0.2);  color:var(--accent-yellow); border:1px solid rgba(249,199,79,0.5); }
+  .arrow-line { flex:1; height:2px; background:repeating-linear-gradient(90deg,rgba(244,162,97,0.75) 0px,rgba(244,162,97,0.75) 12px,transparent 12px,transparent 20px); background-size:40px 2px; animation:arrowFlow 0.8s linear infinite; position:relative; }
+  .arrow-line::after { content:'▶'; position:absolute; right:-2px; top:-7px; font-size:14px; color:var(--accent-orange); opacity:0.7; }
+  .targets { display:flex; flex-direction:column; gap:8px; }
+  .target-box { background:var(--panel2); border:1px solid var(--border2); border-radius:6px; padding:7px 12px; display:flex; align-items:center; gap:8px; transition:background 0.2s, border-color 0.2s; }
+  .target-box:hover { background:rgba(244,162,97,0.08); border-color:rgba(244,162,97,0.4); }
+  .target-box.conflict { border-color:rgba(230,57,70,0.5); background:rgba(230,57,70,0.05); }
+  .target-icon { font-size:18px; }
+  .target-name { font-family:var(--head); font-size:13px; font-weight:700; color:var(--text-bright); display:block; }
+  .target-ip   { font-family:var(--mono); font-size:11px; color:var(--text-dim); display:block; }
+  .target-tag  { font-family:var(--head); font-size:9px; font-weight:700; letter-spacing:1px; padding:1px 5px; border-radius:3px; margin-top:2px; display:inline-block; }
+  .tag-legit { background:rgba(67,170,139,0.2); color:var(--accent-green); }
+  .tag-unauthorized { background:rgba(230,57,70,0.2);  color:var(--accent-red); }
+
+  /* CODE BLOCK */
+  .query-panel .panel-header h2  { color:var(--accent-orange); }
+  .query-panel .panel-header .dot { background:var(--accent-orange); box-shadow:0 0 6px var(--accent-orange); }
+  .code-block { background:#050810; border:1px solid rgba(244,162,97,0.15); border-radius:6px; padding:14px 16px; font-family:var(--mono); font-size:12px; line-height:1.8; overflow-x:auto; position:relative; }
+  .code-block::before { content:'SPL'; position:absolute; top:8px; right:12px; font-size:10px; letter-spacing:2px; color:rgba(244,162,97,0.3); font-weight:700; }
+  .kw  { color:#4cc9f0; } .fn  { color:#f9c74f; } .str { color:#a8d8a8; } .num { color:#f4a261; } .cmt { color:#4a5568; font-style:italic; }
+
+  /* MAC STATUS CHIPS */
+  .mac-status-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .mac-chip { border-radius:5px; padding:5px 11px; font-size:11.5px; display:flex; align-items:center; gap:6px; }
+  .mac-chip-new   { background:rgba(230,57,70,0.12); border:1px solid rgba(230,57,70,0.45); }
+  .mac-chip-chg   { background:rgba(244,162,97,0.12); border:1px solid rgba(244,162,97,0.45); }
+  .mac-chip-known { background:rgba(67,170,139,0.10); border:1px solid rgba(67,170,139,0.35); }
+  .mac-chip-label { font-family:var(--mono); font-weight:700; }
+  .mac-chip-new   .mac-chip-label { color:var(--accent-red); }
+  .mac-chip-chg   .mac-chip-label { color:var(--accent-orange); }
+  .mac-chip-known .mac-chip-label { color:var(--accent-green); }
+
+  /* OUTPUT TABLE */
+  .output-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .output-table th { font-family:var(--head); font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim); padding:7px 12px; background:rgba(255,255,255,0.03); border-bottom:1px solid var(--border); text-align:left; }
+  .output-table td { padding:8px 12px; border-bottom:1px solid rgba(30,45,70,0.5); font-family:var(--mono); font-size:12px; color:var(--text); }
+  .output-table tr:last-child td { border-bottom:none; }
+  .output-table tr:hover td { background:rgba(255,255,255,0.02); }
+  .output-table tr.crit-row td { background:rgba(230,57,70,0.05); }
+  .badge-medium   { background:rgba(249,199,79,0.15); border:1px solid var(--accent-yellow); color:var(--accent-yellow); padding:2px 10px; border-radius:4px; font-family:var(--head); font-size:12px; font-weight:700; letter-spacing:1px; }
+  .badge-high     { background:rgba(230,57,70,0.15);  border:1px solid var(--accent-red);    color:var(--accent-red);    padding:2px 10px; border-radius:4px; font-family:var(--head); font-size:12px; font-weight:700; letter-spacing:1px; animation:pulseGlow 2.5s ease-in-out infinite; }
+  .badge-critical { background:rgba(230,57,70,0.30);  border:2px solid var(--accent-red);    color:#ff6b6b;             padding:2px 10px; border-radius:4px; font-family:var(--head); font-size:12px; font-weight:700; letter-spacing:1px; animation:pulseGlow 1.2s ease-in-out infinite; box-shadow:0 0 10px rgba(230,57,70,0.4); }
+
+  /* RIGHT COL */
+  .log-source-block { background:rgba(244,162,97,0.06); border:1px solid rgba(244,162,97,0.2); border-radius:6px; padding:9px 12px; margin-bottom:8px; }
+  .log-source-block:last-child { margin-bottom:0; }
+  .log-source-title { font-family:var(--head); font-size:11px; font-weight:800; letter-spacing:1.5px; margin-bottom:6px; }
+  .fields-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px 8px; }
+  .field-row { display:flex; align-items:baseline; gap:5px; padding:2px 0; border-bottom:1px solid rgba(30,45,70,0.4); }
+  .field-name { font-family:var(--mono); font-size:11px; min-width:75px; flex-shrink:0; }
+  .field-desc { font-size:11px; color:var(--text-dim); }
+  .severity-item { display:flex; gap:12px; align-items:flex-start; padding:10px 12px; border-radius:6px; margin-bottom:8px; transition:transform 0.2s; }
+  .severity-item:hover { transform:translateX(4px); }
+  .severity-item:last-child { margin-bottom:0; }
+  .sev-medium   { background:rgba(249,199,79,0.07); border:1px solid rgba(249,199,79,0.25); }
+  .sev-high     { background:rgba(230,57,70,0.07);  border:1px solid rgba(230,57,70,0.25); }
+  .sev-critical { background:rgba(230,57,70,0.14);  border:2px solid rgba(230,57,70,0.6); box-shadow:0 0 12px rgba(230,57,70,0.2); }
+  .sev-dot { width:14px; height:14px; border-radius:50%; flex-shrink:0; margin-top:2px; }
+  .sev-dot.medium   { background:var(--accent-yellow); box-shadow:0 0 8px var(--accent-yellow); }
+  .sev-dot.high     { background:var(--accent-red);    box-shadow:0 0 8px var(--accent-red); }
+  .sev-dot.critical { background:#ff3344; box-shadow:0 0 14px rgba(230,57,70,0.9); animation:pulseGlow 1s ease-in-out infinite; }
+  .sev-label { font-family:var(--head); font-size:16px; font-weight:800; display:block; }
+  .sev-label.medium   { color:var(--accent-yellow); }
+  .sev-label.high     { color:var(--accent-red); }
+  .sev-label.critical { color:#ff3344; font-size:18px; }
+  .sev-desc { font-size:12px; color:var(--text-dim); line-height:1.5; margin-top:2px; }
+  .scenario-item { display:flex; align-items:flex-start; gap:10px; padding:7px 10px; background:rgba(255,255,255,0.025); border:1px solid var(--border); border-radius:6px; font-size:12px; margin-bottom:6px; transition:background 0.2s, border-color 0.2s, transform 0.2s; }
+  .scenario-item:last-child { margin-bottom:0; }
+  .scenario-item:hover { background:rgba(244,162,97,0.06); border-color:rgba(244,162,97,0.25); transform:translateX(4px); }
+  .scenario-icon  { font-size:14px; flex-shrink:0; margin-top:1px; }
+  .scenario-title { font-weight:600; color:var(--text-bright); font-size:12px; }
+  .scenario-desc  { color:var(--text-dim); font-size:11.5px; }
+
+  /* LOOK FOR */
+  .look-for-panel { border-left:1px solid var(--border); border-top:1px solid var(--border); background:linear-gradient(135deg,var(--panel),#0d1a2e); padding:14px 18px 14px 20px; display:flex; gap:16px; align-items:flex-start; animation:fadeSlideUp 0.5s ease 0.6s both; }
+  .look-icon  { font-size:36px; opacity:0.8; flex-shrink:0; }
+  .look-items { flex:1; display:flex; flex-direction:column; gap:7px; }
+  .look-item  { display:flex; gap:8px; align-items:flex-start; font-size:13px; color:var(--text); }
+  .look-badge { font-family:var(--head); font-size:10px; font-weight:800; padding:2px 7px; border-radius:3px; flex-shrink:0; margin-top:1px; letter-spacing:1px; }
+  .lb-0 { background:rgba(230,57,70,0.30); color:#ff6b6b; border:1px solid rgba(230,57,70,0.5); }
+  .lb-t { background:rgba(67,170,139,0.25);  color:var(--accent-green); }
+  .lb-b { background:rgba(72,149,239,0.25);  color:var(--accent-blue); }
+  .lb-a { background:rgba(244,162,97,0.25);  color:var(--accent-orange); }
+
+  /* DECISION TREE */
+  .dt-section { border-top:2px solid var(--border); padding:20px 22px 24px; background:linear-gradient(180deg,#090c11,#0b0f1a); animation:fadeSlideUp 0.5s ease 0.7s both; }
+  .dt-title   { font-family:var(--head); font-size:17px; font-weight:900; letter-spacing:2.5px; color:var(--text-bright); text-transform:uppercase; }
+  .dt-subtitle { font-size:12px; color:var(--text-dim); margin-bottom:18px; line-height:1.5; margin-top:6px; }
+  .tree { display:flex; flex-direction:column; align-items:center; }
+  .v-line { width:2px; height:22px; background:var(--border2); flex-shrink:0; }
+  .v-line.red    { background:rgba(230,57,70,0.5); }
+  .v-line.green  { background:rgba(67,170,139,0.5); }
+  .v-line.orange { background:rgba(244,162,97,0.5); }
+  .v-line.crit   { background:rgba(230,57,70,0.85); }
+
+  /* CRITICAL gate node */
+  .dnode-crit { position:relative; border-radius:8px; padding:11px 18px; text-align:center; max-width:400px; width:400px; background:linear-gradient(135deg,rgba(230,57,70,0.16),rgba(180,0,20,0.10)); border:2px solid var(--accent-red); box-shadow:0 0 18px rgba(230,57,70,0.25); animation:treeNodeDrop 0.4s ease both; transition:box-shadow 0.2s; }
+  .dnode-crit:hover { box-shadow:0 0 28px rgba(230,57,70,0.45); }
+  .dnode-crit::before { content:'◆'; position:absolute; top:-10px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--accent-red); background:#090c11; padding:0 4px; }
+
+  .dnode { position:relative; background:var(--panel2); border:1.5px solid var(--border2); border-radius:8px; padding:10px 16px; text-align:center; max-width:400px; width:400px; animation:treeNodeDrop 0.4s ease both; transition:box-shadow 0.2s, border-color 0.2s; }
+  .dnode:hover { box-shadow:0 0 18px rgba(244,162,97,0.18); border-color:rgba(244,162,97,0.45); }
+  .dnode::before { content:'◆'; position:absolute; top:-10px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--accent-orange); background:#090c11; padding:0 4px; }
+
+  .dnode-step { font-family:var(--head); font-size:10px; font-weight:800; letter-spacing:2px; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:3px; }
+  .dnode-step.crit-label { color:#ff8888; }
+  .dnode-q   { font-size:13px; font-weight:600; color:var(--text-bright); line-height:1.4; }
+  .dnode-sub { font-size:11px; color:var(--text-dim); margin-top:4px; line-height:1.4; }
+
+  .yn-row { display:flex; justify-content:space-between; width:400px; margin-top:2px; }
+  .yn { font-family:var(--head); font-size:11px; font-weight:800; letter-spacing:1px; padding:0 4px; }
+  .yn.yes    { color:var(--accent-green); }
+  .yn.no     { color:var(--accent-red); }
+  .yn.crit-y { color:#ff4455; }
+  .yn.crit-n { color:var(--accent-green); }
+
+  .wide-branch { display:flex; align-items:flex-start; gap:28px; justify-content:center; width:100%; }
+  .wide-col    { display:flex; flex-direction:column; align-items:center; }
+  .h-line { height:2px; background:var(--border2); }
+  .h-line.red    { background:rgba(230,57,70,0.5); }
+  .h-line.green  { background:rgba(67,170,139,0.5); }
+  .h-line.orange { background:rgba(244,162,97,0.5); }
+  .h-line.crit   { background:rgba(230,57,70,0.85); }
+
+  .abox { border-radius:7px; padding:9px 13px; text-align:center; border:1.5px solid; max-width:220px; width:220px; font-size:12px; line-height:1.45; transition:transform 0.2s, box-shadow 0.2s; }
+  .abox:hover { transform:translateY(-3px); }
+  .abox-title { font-family:var(--head); font-size:12px; font-weight:800; letter-spacing:1px; display:block; margin-bottom:3px; }
+  .abox-desc  { font-size:11px; color:var(--text-dim); }
+  .abox.close  { background:rgba(67,170,139,0.08); border-color:rgba(67,170,139,0.4); }
+  .abox.close .abox-title  { color:var(--accent-green); }
+  .abox.raise  { background:rgba(230,57,70,0.08);  border-color:rgba(230,57,70,0.4); }
+  .abox.raise .abox-title  { color:var(--accent-red); }
+  .abox.verify { background:rgba(244,162,97,0.10); border-color:rgba(244,162,97,0.5); max-width:260px; width:260px; }
+  .abox.verify .abox-title { color:var(--accent-orange); }
+
+  /* CRITICAL action box */
+  .abox-critical { border-radius:8px; padding:12px 16px; text-align:center; background:linear-gradient(135deg,rgba(230,57,70,0.22),rgba(180,0,20,0.14)); border:2px solid var(--accent-red); max-width:310px; width:310px; box-shadow:0 0 20px rgba(230,57,70,0.3); font-size:12px; line-height:1.45; transition:transform 0.2s, box-shadow 0.2s; animation:pulseGlow 1.8s ease-in-out infinite; }
+  .abox-critical:hover { transform:translateY(-3px); box-shadow:0 0 32px rgba(230,57,70,0.5); }
+  .abox-critical .abox-title { font-family:var(--head); font-size:14px; font-weight:900; letter-spacing:1.5px; display:block; margin-bottom:5px; color:#ff3344; }
+  .abox-critical .abox-desc  { font-size:11px; color:var(--text-dim); }
+
+  .esc-methods { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:6px; }
+  .esc-chip     { background:rgba(244,162,97,0.12); border:1px solid rgba(244,162,97,0.3); border-radius:4px; padding:2px 8px; font-family:var(--head); font-size:10px; font-weight:700; color:var(--accent-orange); }
+  .esc-chip.red { background:rgba(230,57,70,0.15);  border-color:rgba(230,57,70,0.4); color:#ff8888; }
+
+  .sev-inline { display:inline-block; font-family:var(--head); font-size:10px; font-weight:800; padding:1px 7px; border-radius:3px; letter-spacing:1px; vertical-align:middle; margin-left:3px; }
+  .sev-m { background:rgba(249,199,79,0.2); color:var(--accent-yellow); }
+  .sev-h { background:rgba(230,57,70,0.2);  color:var(--accent-red); }
+  .sev-c { background:rgba(230,57,70,0.4);  color:#ff3344; border:1px solid var(--accent-red); }
+
+  .irp-steps { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:8px; }
+  .irp-step  { background:rgba(230,57,70,0.15); border:1px solid rgba(230,57,70,0.4); border-radius:4px; padding:3px 9px; font-size:11px; color:#ff8888; font-weight:600; }
+
+  .tree-legend { display:flex; gap:16px; flex-wrap:wrap; margin-top:18px; padding:10px 14px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:6px; justify-content:center; }
+  .leg-item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-dim); }
+  .leg-dot  { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+
+  /* ANIMATIONS */
+  @keyframes fadeIn          { from{opacity:0} to{opacity:1} }
+  @keyframes fadeSlideUp     { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes pulseGlow       { 0%,100%{opacity:1} 50%{opacity:0.55} }
+  @keyframes scanLine        { 0%{top:-4px;opacity:0} 5%{opacity:.8} 95%{opacity:.8} 100%{top:100%;opacity:0} }
+  @keyframes arrowFlow       { 0%{background-position:0 0} 100%{background-position:40px 0} }
+  @keyframes glowPulseOrange { 0%,100%{text-shadow:0 0 12px rgba(244,162,97,0.4)} 50%{text-shadow:0 0 32px rgba(244,162,97,0.9),0 0 8px rgba(244,162,97,0.5)} }
+  @keyframes borderPulseOrange{ 0%,100%{box-shadow:0 0 12px rgba(244,162,97,0.4)} 50%{box-shadow:0 0 24px rgba(244,162,97,0.8)} }
+  @keyframes rowFade         { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
+  @keyframes slideInRight    { from{opacity:0;transform:translateX(20px)}  to{opacity:1;transform:translateX(0)} }
+  @keyframes treeNodeDrop    { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+
+  .left-col  .panel:nth-child(1){ animation:fadeSlideUp 0.5s ease 0.10s both; }
+  .left-col  .panel:nth-child(2){ animation:fadeSlideUp 0.5s ease 0.20s both; }
+  .left-col  .panel:nth-child(3){ animation:fadeSlideUp 0.5s ease 0.30s both; }
+  .left-col  .panel:nth-child(4){ animation:fadeSlideUp 0.5s ease 0.40s both; }
+  .right-col .panel:nth-child(1){ animation:fadeSlideUp 0.5s ease 0.20s both; }
+  .right-col .panel:nth-child(2){ animation:fadeSlideUp 0.5s ease 0.35s both; }
+  .right-col .panel:nth-child(3){ animation:fadeSlideUp 0.5s ease 0.50s both; }
+  .target-box:nth-child(1){ animation:slideInRight 0.5s ease 0.40s both; }
+  .target-box:nth-child(2){ animation:slideInRight 0.5s ease 0.55s both; }
+  .target-box:nth-child(3){ animation:slideInRight 0.5s ease 0.70s both; }
+  .output-table tbody tr:nth-child(1){ animation:rowFade 0.4s ease 0.50s both; }
+  .output-table tbody tr:nth-child(2){ animation:rowFade 0.4s ease 0.65s both; }
+  .output-table tbody tr:nth-child(3){ animation:rowFade 0.4s ease 0.80s both; }
+  .output-table tbody tr:nth-child(4){ animation:rowFade 0.4s ease 0.95s both; }
+  .output-table tbody tr:nth-child(5){ animation:rowFade 0.4s ease 1.10s both; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <span class="use-case-label">OT/ICS Threat Detection · Use Case</span>
+      <div class="main-id">NET-IDP-01</div>
+    </div>
+    <div class="main-title-block">
+      <div class="main-title">Duplicate IP Address Detected<br>in OT / PCN Segment</div>
+    </div>
+    <div class="category-badge">Evasion / Spoofing</div>
+  </div>
+  <div class="meta-strip">
+    <div class="meta-item"><span class="meta-icon">🎯</span><div><span class="meta-label">MITRE ATT&amp;CK ICS</span><span class="meta-value orange">T0856</span><span style="font-size:11px;color:var(--text-dim)">Spoof Reporting Message</span></div></div>
+    <div class="meta-item"><span class="meta-icon">⛓</span><div><span class="meta-label">Kill Chain Phase</span><span class="meta-value">Evasion / Spoofing</span></div></div>
+    <div class="meta-item"><span class="meta-icon">📋</span><div><span class="meta-label">Data Sources</span><span class="meta-value" style="font-size:12px">ARP · DHCP · Net Logs · Crown Jewels</span></div></div>
+    <div class="meta-item"><span class="meta-icon">🕐</span><div><span class="meta-label">Search Window</span><span class="meta-value">Real-time — 1 min</span></div></div>
+    <div class="meta-item alert"><span class="meta-icon">🔔</span><div><span class="meta-label">Alerting Time</span><span class="meta-value yellow">Every 1 min</span></div></div>
+  </div>
+</div>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<div class="main">
+  <div class="left-col">
+
+    <!-- DESCRIPTION -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot"></div><h2>Description</h2></div>
+      <div class="panel-body description">
+        <p>A <strong>duplicate IP address conflict</strong> occurs when two or more devices in the <strong>OT/PCN segment</strong> respond to the same IP — via ARP replies, DHCP lease collisions, or simultaneous flows from different MAC addresses.</p>
+        <p>Before classifying the conflict type, the query performs a <strong>MAC Status pre-check</strong> against a 30-day history lookup. A <strong>brand-new MAC</strong> (never seen before) triggers <strong>CRITICAL immediately</strong>. A <strong>MAC that changed its associated IP</strong> also triggers <strong>CRITICAL immediately</strong>. In both cases, notification must happen before any further analysis.</p>
+        <p>For known MACs, three conflict vectors are evaluated: <strong>ARP conflict</strong> (same IP, two MACs), <strong>DHCP lease collision</strong>, and <strong>dual-source traffic</strong>. The fields <strong>MacStatus</strong> and <strong>ConflictType</strong> classify each result automatically, with <strong>ImmediateNotify</strong> flagging cases requiring instant action.</p>
+        <div class="highlight-box"><strong>MAC Status always overrides conflict-type severity.</strong> NEW or IP_CHANGED → CRITICAL regardless of how the conflict was detected. The 30-day lookback runs in parallel with the 5-minute sliding window for live conflict detection.</div>
+      </div>
+    </div>
+
+    <!-- NETWORK TOPOLOGY DIAGRAM -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot" style="background:#f4a261;box-shadow:0 0 6px #f4a261"></div><h2 style="color:#f4a261">Network Topology — IP Conflict Scenario</h2></div>
+      <div class="panel-body" style="padding:16px">
+        <style>
+          .topo { display:grid; grid-template-columns:1fr auto 1fr; gap:0; align-items:start; }
+          .topo-left, .topo-right { display:flex; flex-direction:column; gap:8px; }
+          .topo-center { display:flex; flex-direction:column; align-items:center; gap:0; padding:0 10px; }
+
+          .topo-device { background:var(--panel2); border:1px solid var(--border2); border-radius:7px; padding:8px 12px; display:flex; align-items:center; gap:9px; transition:border-color 0.2s; }
+          .topo-device:hover { border-color:rgba(244,162,97,0.35); }
+          .topo-device.conflict-dev { border-color:rgba(230,57,70,0.5); background:rgba(230,57,70,0.05); }
+          .topo-device.legit-dev   { border-color:rgba(67,170,139,0.4); }
+          .tdev-icon { font-size:22px; flex-shrink:0; }
+          .tdev-name { font-family:var(--head); font-size:13px; font-weight:700; color:var(--text-bright); display:block; line-height:1.2; }
+          .tdev-ip   { font-family:var(--mono); font-size:11px; color:var(--text-dim); display:block; }
+          .tdev-mac  { font-family:var(--mono); font-size:10px; display:block; margin-top:1px; }
+          .tdev-tag  { font-family:var(--head); font-size:9px; font-weight:700; letter-spacing:1px; padding:1px 6px; border-radius:3px; display:inline-block; margin-top:3px; }
+          .tag-known  { background:rgba(67,170,139,0.2);  color:var(--accent-green); }
+          .tag-unknown { background:rgba(230,57,70,0.2);  color:var(--accent-red); }
+          .tag-vm      { background:rgba(76,201,240,0.2); color:var(--accent-cyan); }
+          .tag-err     { background:rgba(249,199,79,0.2); color:var(--accent-yellow); }
+
+          /* Switch in center */
+          .switch-box { background:linear-gradient(135deg,#0d1828,#131f35); border:2px solid var(--border2); border-radius:10px; padding:12px 16px; text-align:center; min-width:130px; position:relative; }
+          .switch-box::before { content:''; position:absolute; top:0;left:0;right:0;bottom:0; border-radius:10px; background:radial-gradient(ellipse at 50% 0%,rgba(244,162,97,0.08),transparent 70%); pointer-events:none; }
+          .sw-icon  { font-size:28px; display:block; }
+          .sw-label { font-family:var(--head); font-size:12px; font-weight:800; color:var(--text-bright); letter-spacing:1.5px; display:block; margin-top:4px; }
+          .sw-sub   { font-family:var(--mono); font-size:10px; color:var(--text-dim); display:block; margin-top:2px; }
+          .sw-ports { display:flex; gap:4px; justify-content:center; margin-top:6px; }
+          .sw-port  { width:10px; height:10px; border-radius:2px; }
+          .sw-port.active  { background:var(--accent-green); box-shadow:0 0 5px var(--accent-green); }
+          .sw-port.alert   { background:var(--accent-red);   box-shadow:0 0 5px var(--accent-red);   animation:pulseGlow 1s ease-in-out infinite; }
+          .sw-port.normal  { background:var(--border2); }
+
+          /* Connector lines */
+          .conn-row { display:flex; align-items:center; gap:0; }
+          .conn-line { height:2px; width:60px; background:var(--border2); }
+          .conn-line.ok     { background:rgba(67,170,139,0.5); }
+          .conn-line.bad    { background:repeating-linear-gradient(90deg,rgba(230,57,70,0.7) 0,rgba(230,57,70,0.7) 6px,transparent 6px,transparent 12px); background-size:12px 2px; animation:arrowFlow 0.6s linear infinite; }
+          .conn-label { font-family:var(--head); font-size:9px; font-weight:700; letter-spacing:1px; color:var(--text-dim); text-transform:uppercase; text-align:center; margin:2px 0; }
+
+          /* Investigation sources strip */
+          .invest-strip { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid var(--border); }
+          .invest-chip { background:rgba(72,149,239,0.07); border:1px solid rgba(72,149,239,0.25); border-radius:6px; padding:6px 10px; display:flex; align-items:flex-start; gap:7px; flex:1; min-width:130px; }
+          .invest-chip.snmp { border-color:rgba(76,201,240,0.3);  background:rgba(76,201,240,0.06); }
+          .invest-chip.arp  { border-color:rgba(244,162,97,0.3);  background:rgba(244,162,97,0.06); }
+          .invest-chip.dhcp { border-color:rgba(72,149,239,0.3);  background:rgba(72,149,239,0.06); }
+          .invest-chip.vm   { border-color:rgba(155,93,229,0.3);  background:rgba(155,93,229,0.06); }
+          .invest-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
+          .invest-title { font-family:var(--head); font-size:11px; font-weight:800; letter-spacing:1px; display:block; margin-bottom:2px; }
+          .invest-chip.snmp .invest-title { color:var(--accent-cyan); }
+          .invest-chip.arp  .invest-title { color:var(--accent-orange); }
+          .invest-chip.dhcp .invest-title { color:var(--accent-blue); }
+          .invest-chip.vm   .invest-title { color:var(--accent-violet, #9b5de5); }
+          .invest-desc { font-size:11px; color:var(--text-dim); line-height:1.4; }
+        </style>
+
+        <div class="topo">
+          <!-- LEFT: known / legit devices -->
+          <div class="topo-left">
+            <div style="font-family:var(--head);font-size:10px;font-weight:700;letter-spacing:2px;color:var(--accent-green);text-transform:uppercase;margin-bottom:2px">Known Assets</div>
+            <div class="topo-device legit-dev">
+              <span class="tdev-icon">🖥</span>
+              <div>
+                <span class="tdev-name">PLC — Siemens S7</span>
+                <span class="tdev-ip">192.168.10.15</span>
+                <span class="tdev-mac" style="color:var(--accent-green)">AA:BB:CC:DD:EE:01</span>
+                <span class="tdev-tag tag-known">AUTHORIZED · 30d history</span>
+              </div>
+            </div>
+            <div class="topo-device">
+              <span class="tdev-icon">🖥</span>
+              <div>
+                <span class="tdev-name">HMI / EWS</span>
+                <span class="tdev-ip">192.168.10.20</span>
+                <span class="tdev-mac" style="color:var(--text-dim)">11:22:33:44:55:66</span>
+                <span class="tdev-tag tag-known">KNOWN ASSET</span>
+              </div>
+            </div>
+            <div class="topo-device">
+              <span class="tdev-icon">📟</span>
+              <div>
+                <span class="tdev-name">RTU</span>
+                <span class="tdev-ip">192.168.10.30</span>
+                <span class="tdev-mac" style="color:var(--text-dim)">AA:11:BB:22:CC:33</span>
+                <span class="tdev-tag tag-known">KNOWN ASSET</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CENTER: switch + conflict indicator -->
+          <div class="topo-center">
+            <div class="conn-row"><div class="conn-line ok" style="width:40px"></div></div>
+            <div class="conn-label">OT/PCN LAN</div>
+            <div class="switch-box">
+              <span class="sw-icon">🔀</span>
+              <span class="sw-label">OT SWITCH</span>
+              <span class="sw-sub">VLAN 10</span>
+              <div class="sw-ports">
+                <div class="sw-port active"></div>
+                <div class="sw-port active"></div>
+                <div class="sw-port alert" title="Conflict port"></div>
+                <div class="sw-port active"></div>
+                <div class="sw-port normal"></div>
+                <div class="sw-port normal"></div>
+              </div>
+              <div style="font-family:var(--head);font-size:9px;color:var(--accent-red);margin-top:5px;letter-spacing:1px">⚠ PORT CONFLICT</div>
+            </div>
+            <div class="conn-label" style="color:var(--accent-red)">⚡ DUPLICATE IP</div>
+            <div class="conn-row"><div class="conn-line bad" style="width:40px"></div></div>
+          </div>
+
+          <!-- RIGHT: conflicting / unknown device -->
+          <div class="topo-right">
+            <div style="font-family:var(--head);font-size:10px;font-weight:700;letter-spacing:2px;color:var(--accent-red);text-transform:uppercase;margin-bottom:2px">⚠ IP Conflict Source</div>
+            <div class="topo-device conflict-dev">
+              <span class="tdev-icon">❓</span>
+              <div>
+                <span class="tdev-name">Unknown Device</span>
+                <span class="tdev-ip" style="color:var(--accent-red)">192.168.10.15 ← SAME IP</span>
+                <span class="tdev-mac" style="color:var(--accent-orange)">DE:AD:BE:EF:00:01</span>
+                <span class="tdev-tag tag-unknown">NEW MAC — NOT IN INVENTORY</span>
+              </div>
+            </div>
+            <div style="font-family:var(--head);font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase;margin-top:4px;margin-bottom:2px">Possible origins:</div>
+            <div class="topo-device" style="border-color:rgba(76,201,240,0.3)">
+              <span class="tdev-icon">💻</span>
+              <div>
+                <span class="tdev-name" style="color:var(--accent-cyan)">Virtual Machine</span>
+                <span class="tdev-mac" style="color:var(--text-dim)">Cloned VM with same IP config</span>
+                <span class="tdev-tag tag-vm">INVESTIGATE</span>
+              </div>
+            </div>
+            <div class="topo-device" style="border-color:rgba(249,199,79,0.3)">
+              <span class="tdev-icon">🔧</span>
+              <div>
+                <span class="tdev-name" style="color:var(--accent-yellow)">Misconfigured Device</span>
+                <span class="tdev-mac" style="color:var(--text-dim)">Static IP assigned in error</span>
+                <span class="tdev-tag tag-err">INVESTIGATE</span>
+              </div>
+            </div>
+            <div class="topo-device" style="border-color:rgba(230,57,70,0.4)">
+              <span class="tdev-icon">👾</span>
+              <div>
+                <span class="tdev-name" style="color:var(--accent-red)">Rogue / ARP Spoof</span>
+                <span class="tdev-mac" style="color:var(--text-dim)">Adversary impersonating asset</span>
+                <span class="tdev-tag tag-unknown">INVESTIGATE</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Investigation sources strip -->
+        <div class="invest-strip">
+          <div class="invest-chip snmp">
+            <span class="invest-icon">📡</span>
+            <div>
+              <span class="invest-title">SNMP SWITCH</span>
+              <span class="invest-desc">Query switch MAC table (OID 1.3.6.1.2.1.17.4.3) to identify which physical port the conflicting MAC is connected to</span>
+            </div>
+          </div>
+          <div class="invest-chip arp">
+            <span class="invest-icon">📋</span>
+            <div>
+              <span class="invest-title">ARP TABLE</span>
+              <span class="invest-desc">Check ARP cache on gateway / L3 switch. Correlate IP→MAC mappings to identify which MAC responded last</span>
+            </div>
+          </div>
+          <div class="invest-chip dhcp">
+            <span class="invest-icon">🗂</span>
+            <div>
+              <span class="invest-title">DHCP LEASES</span>
+              <span class="invest-desc">Review DHCP server lease log for the conflicting IP. Hostname and timestamp may reveal the device origin</span>
+            </div>
+          </div>
+          <div class="invest-chip vm">
+            <span class="invest-icon">🖥</span>
+            <div>
+              <span class="invest-title">VM INVENTORY</span>
+              <span class="invest-desc">Verify with OT team if a VM or failover instance was recently cloned or started with the same IP configuration</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPLUNK QUERY -->
+    <div class="panel query-panel">
+      <div class="panel-header"><div class="dot"></div><h2>Splunk Query — Duplicate IP Detection · Simplified &amp; Performance-Optimized</h2></div>
+      <div class="panel-body">
+        <div class="code-block"><pre><span class="cmt">﹃ Scheduled alert · every 1 min · earliest=-2m latest=now
+  Lookups required:
+    crown_jewels.csv    → fields: ip, mac, asset_name, criticality_tier
+    mac_ip_history.csv  → fields: mac, known_ip
+  Both CSVs are static enrichment tables — no join, no subsearch ﹄</span>
+
+<span class="cmt">﹃ 1. BASE SEARCH — index/sourcetype filters first for performance
+      tstats is preferred but ARP/DHCP are often not CIM-mapped;
+      raw search kept narrow with earliest/latest and key filters   ﹄</span>
+<span class="kw">index</span>=network (<span class="kw">sourcetype</span>=arp_logs <span class="kw">OR</span> <span class="kw">sourcetype</span>=dhcp_logs <span class="kw">OR</span> <span class="kw">sourcetype</span>=network_logs)
+<span class="kw">earliest</span>=-2m <span class="kw">latest</span>=now
+
+<span class="cmt">﹃ 2. NORMALIZE — unify IP and MAC field names across sourcetypes ﹄</span>
+<span class="kw">|</span> <span class="fn">eval</span> src_ip  = <span class="fn">coalesce</span>(src_ip, assigned_ip),
+       src_mac = <span class="fn">coalesce</span>(src_mac, client_mac),
+       ConflictType = <span class="fn">case</span>(
+           sourcetype=<span class="str">"arp_logs"</span>,     <span class="str">"ARP_CONFLICT"</span>,
+           sourcetype=<span class="str">"dhcp_logs"</span>,    <span class="str">"DHCP_COLLISION"</span>,
+           sourcetype=<span class="str">"network_logs"</span>, <span class="str">"DUAL_SOURCE_TRAFFIC"</span>)
+
+<span class="cmt">﹃ 3. DETECT DUPLICATE IP — count distinct MACs per IP in window ﹄</span>
+<span class="kw">|</span> <span class="fn">stats</span> <span class="fn">dc</span>(src_mac) <span class="kw">AS</span> UniqueMacs
+        <span class="fn">values</span>(src_mac) <span class="kw">AS</span> MacList
+        <span class="fn">values</span>(ConflictType) <span class="kw">AS</span> ConflictType
+        <span class="kw">BY</span> src_ip
+<span class="kw">|</span> <span class="fn">where</span> UniqueMacs &gt;= <span class="num">2</span>
+
+<span class="cmt">﹃ 4. ENRICH — lookup replaces join; no subsearch, no performance hit ﹄</span>
+<span class="kw">|</span> <span class="fn">lookup</span> crown_jewels.csv   ip <span class="kw">AS</span> src_ip   OUTPUT asset_name, criticality_tier,
+                                                     mac <span class="kw">AS</span> cj_mac
+<span class="kw">|</span> <span class="fn">lookup</span> mac_ip_history.csv mac <span class="kw">AS</span> src_mac  OUTPUT known_ip
+
+<span class="cmt">﹃ 5. CLASSIFY — MacStatus, Crown Jewel flag, CritReason, Severity ﹄</span>
+<span class="kw">|</span> <span class="fn">eval</span>
+    IsCrownJewel = <span class="fn">if</span>(<span class="fn">isnotnull</span>(asset_name), <span class="str">"YES"</span>, <span class="str">"NO"</span>),
+    MacStatus    = <span class="fn">case</span>(
+                       <span class="fn">isnull</span>(known_ip),              <span class="str">"NEW"</span>,
+                       known_ip != src_ip,             <span class="str">"IP_CHANGED"</span>,
+                       <span class="fn">true</span>(),                        <span class="str">"KNOWN"</span>),
+    CritReason   = <span class="fn">case</span>(
+                       IsCrownJewel = <span class="str">"YES"</span>,          <span class="str">"CROWN_JEWEL"</span>,
+                       MacStatus    = <span class="str">"NEW"</span>,           <span class="str">"NEW_MAC"</span>,
+                       MacStatus    = <span class="str">"IP_CHANGED"</span>,   <span class="str">"IP_CHANGED"</span>,
+                       <span class="fn">true</span>(),                        <span class="str">"DUAL_MAC"</span>),
+    Severity     = <span class="fn">case</span>(
+                       IsCrownJewel = <span class="str">"YES"</span>,          <span class="str">"CRITICAL"</span>,
+                       MacStatus   != <span class="str">"KNOWN"</span>,        <span class="str">"CRITICAL"</span>,
+                       <span class="fn">mvcount</span>(ConflictType) &gt; <span class="num">1</span>,    <span class="str">"HIGH"</span>,
+                       <span class="fn">true</span>(),                        <span class="str">"MEDIUM"</span>)
+
+<span class="kw">|</span> <span class="fn">table</span> src_ip, MacList, known_ip, asset_name, criticality_tier,
+         IsCrownJewel, MacStatus, ConflictType, CritReason, Severity
+<span class="kw">|</span> <span class="fn">sort</span>  0 - Severity
+</pre></div>
+
+        <!-- Performance notes strip -->
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <div style="background:rgba(67,170,139,0.07);border:1px solid rgba(67,170,139,0.3);border-radius:5px;padding:5px 11px;font-size:11px;display:flex;align-items:flex-start;gap:7px;flex:1;min-width:160px">
+            <span style="color:var(--accent-green);font-size:14px;flex-shrink:0">✔</span>
+            <div><strong style="color:var(--accent-green);font-family:var(--head);letter-spacing:1px">keep up to date crown_jewels.cvs</strong><br><span style="color:var(--text-dim)">keep up to date the crown_jewels.csv file</span></div>
+          </div>
+          
+          
+          
+        <div style="background:rgba(67,170,139,0.07);border:1px solid rgba(67,170,139,0.3);border-radius:5px;padding:5px 11px;font-size:11px;display:flex;align-items:flex-start;gap:7px;flex:1;min-width:160px">
+            <span style="color:var(--accent-green);font-size:14px;flex-shrink:0">✔</span>
+            <div><strong style="color:var(--accent-green);font-family:var(--head);letter-spacing:1px">keep up to date mac_ip_history.cvs</strong><br><span style="color:var(--text-dim)">keep up to date the mac_ip_history.csv file</span></div>
+          </div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          
+          
+          
+          
+        </div></div>
+        
+        
+
+        
+<div class="mac-status-row" style="margin-top:8px">
+          <div class="mac-chip mac-chip-new"><span class="mac-chip-label">CROWN_JEWEL</span><span style="color:var(--text-dim);font-size:11px">IP in CJ lookup → <strong style="color:#ff4455">CRITICAL (Rule 1)</strong></span></div>
+          <div class="mac-chip mac-chip-new"><span class="mac-chip-label">NEW / IP_CHG</span><span style="color:var(--text-dim);font-size:11px">Unknown or moved MAC → <strong style="color:#ff4455">CRITICAL (Rule 2)</strong></span></div>
+          <div class="mac-chip mac-chip-chg"><span class="mac-chip-label">DUAL_MAC</span><span style="color:var(--text-dim);font-size:11px">Known, multi-sourcetype → <strong style="color:var(--accent-yellow)">HIGH</strong></span></div>
+          <div class="mac-chip mac-chip-known"><span class="mac-chip-label">KNOWN</span><span style="color:var(--text-dim);font-size:11px">Single sourcetype → <strong style="color:var(--text)">MEDIUM</strong></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPECTED OUTPUT -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot" style="background:#43aa8b;box-shadow:0 0 6px #43aa8b"></div><h2 style="color:#43aa8b">Expected Output</h2></div>
+      <div class="panel-body" style="padding:0">
+        <table class="output-table">
+          <thead>
+            <tr>
+              <th>src_ip</th><th>src_mac</th><th>asset_name</th><th>CJ</th><th>UniqMAC</th><th>MacStatus</th><th>ConflictType</th><th>CritReason</th><th>Severity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Row 1: Crown Jewel → CRITICAL -->
+            <tr class="crit-row">
+              <td style="color:var(--accent-cyan)">192.168.10.10</td>
+              <td style="font-size:10px;color:var(--accent-orange)">AA:BB:CC:DD:EE:01</td>
+              <td style="font-size:11px;color:#ffd700;font-weight:700">👑 Safety PLC</td>
+              <td style="text-align:center"><span style="color:#ffd700;font-weight:700;font-size:12px">YES</span></td>
+              <td style="text-align:center;font-weight:700;color:var(--accent-red)">2</td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:var(--accent-green);background:rgba(67,170,139,0.12);padding:2px 6px;border-radius:3px;border:1px solid rgba(67,170,139,0.3)">KNOWN</span></td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:var(--accent-orange);background:rgba(244,162,97,0.12);padding:2px 6px;border-radius:3px;border:1px solid rgba(244,162,97,0.3)">ARP_CONFLICT</span></td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:#ffd700;background:rgba(255,215,0,0.12);padding:2px 6px;border-radius:3px;border:1px solid rgba(255,215,0,0.4)">CROWN_JEWEL</span></td>
+              <td><span class="badge-critical">🔴 CRITICAL</span></td>
+            </tr>
+            <!-- Row 2: Dual MAC → CRITICAL -->
+            <tr class="crit-row">
+              <td style="color:var(--accent-cyan)">192.168.10.15</td>
+              <td style="font-size:10px;color:var(--accent-orange)">DE:AD:BE:EF:00:01</td>
+              <td style="font-size:11px;color:var(--text-dim)">—</td>
+              <td style="text-align:center;color:var(--text-dim);font-size:11px">NO</td>
+              <td style="text-align:center;font-weight:700;color:var(--accent-red)">2</td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:#ff4455;background:rgba(230,57,70,0.18);padding:2px 6px;border-radius:3px;border:1px solid rgba(230,57,70,0.5)">NEW</span></td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:var(--accent-orange);background:rgba(244,162,97,0.12);padding:2px 6px;border-radius:3px;border:1px solid rgba(244,162,97,0.3)">ARP_CONFLICT</span></td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:#ff4455;background:rgba(230,57,70,0.18);padding:2px 6px;border-radius:3px;border:1px solid rgba(230,57,70,0.5)">DUAL_MAC_CONFLICT</span></td>
+              <td><span class="badge-critical">🔴 CRITICAL</span></td>
+            </tr>
+            <!-- Row 3: IP_CHANGED → CRITICAL -->
+            <tr class="crit-row">
+              <td style="color:var(--accent-cyan)">192.168.10.42</td>
+              <td style="font-size:10px;color:var(--accent-orange)">11:22:33:44:55:AA</td>
+              <td style="font-size:11px;color:var(--text-dim)">—</td>
+              <td style="text-align:center;color:var(--text-dim);font-size:11px">NO</td>
+              <td style="text-align:center;font-weight:700;color:var(--accent-yellow)">2</td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:var(--accent-orange);background:rgba(244,162,97,0.15);padding:2px 6px;border-radius:3px;border:1px solid rgba(244,162,97,0.4)">IP_CHANGED</span></td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:var(--accent-blue);background:rgba(72,149,239,0.12);padding:2px 6px;border-radius:3px;border:1px solid rgba(72,149,239,0.3)">DHCP_COLLISION</span></td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:var(--accent-orange);background:rgba(244,162,97,0.15);padding:2px 6px;border-radius:3px;border:1px solid rgba(244,162,97,0.4)">IP_CHANGED</span></td>
+              <td><span class="badge-critical">🔴 CRITICAL</span></td>
+            </tr>
+            <!-- Row 4: KNOWN, ARP → HIGH -->
+            <tr>
+              <td style="color:var(--accent-cyan)">192.168.10.77</td>
+              <td style="font-size:10px;color:var(--accent-orange)">CC:DD:EE:FF:00:01</td>
+              <td style="font-size:11px;color:var(--text-dim)">—</td>
+              <td style="text-align:center;color:var(--text-dim);font-size:11px">NO</td>
+              <td style="text-align:center;font-weight:700;color:var(--accent-yellow)">2</td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:var(--accent-green);background:rgba(67,170,139,0.12);padding:2px 6px;border-radius:3px;border:1px solid rgba(67,170,139,0.3)">KNOWN</span></td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:var(--accent-orange);background:rgba(244,162,97,0.12);padding:2px 6px;border-radius:3px;border:1px solid rgba(244,162,97,0.3)">ARP_CONFLICT</span></td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">—</span></td>
+              <td><span class="badge-high">● HIGH</span></td>
+            </tr>
+            <!-- Row 5: KNOWN, DHCP → MEDIUM -->
+            <tr>
+              <td style="color:var(--accent-cyan)">192.168.10.90</td>
+              <td style="font-size:10px;color:var(--accent-orange)">FE:DC:BA:98:76:54</td>
+              <td style="font-size:11px;color:var(--text-dim)">—</td>
+              <td style="text-align:center;color:var(--text-dim);font-size:11px">NO</td>
+              <td style="text-align:center;font-weight:700;color:var(--accent-yellow)">2</td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:var(--accent-green);background:rgba(67,170,139,0.12);padding:2px 6px;border-radius:3px;border:1px solid rgba(67,170,139,0.3)">KNOWN</span></td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:var(--accent-blue);background:rgba(72,149,239,0.12);padding:2px 6px;border-radius:3px;border:1px solid rgba(72,149,239,0.3)">DHCP_COLLISION</span></td>
+              <td><span style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">—</span></td>
+              <td><span class="badge-medium">● MEDIUM</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--border);background:rgba(0,0,0,0.2)">
+          <span style="font-family:var(--head);font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase;align-self:center">Severity rules:</span>
+          <span style="font-size:11px;color:var(--text-dim)">2 MACs same IP → <span class="badge-critical" style="padding:1px 6px;font-size:10px">CRIT</span></span>
+          <span style="font-size:11px;color:var(--text-dim)">Crown Jewel → <span class="badge-critical" style="padding:1px 6px;font-size:10px">CRIT</span></span>
+          <span style="font-size:11px;color:var(--text-dim)">NEW / IP_CHG → <span class="badge-critical" style="padding:1px 6px;font-size:10px">CRIT</span></span>
+          <span style="font-size:11px;color:var(--text-dim)">ARP/DUAL → <span class="badge-high" style="padding:1px 6px;font-size:10px">HIGH</span></span>
+          <span style="font-size:11px;color:var(--text-dim)">DHCP only → <span class="badge-medium" style="padding:1px 6px;font-size:10px">MED</span></span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /left-col -->
+
+  <div class="right-col">
+
+    <!-- LOG SOURCES -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot" style="background:#f4a261;box-shadow:0 0 6px #f4a261"></div><h2 style="color:#f4a261">Log Sources &amp; Key Fields</h2></div>
+      <div class="panel-body">
+        <div class="log-source-block" style="background:rgba(255,215,0,0.06);border-color:rgba(255,215,0,0.35)">
+          <div class="log-source-title" style="color:#ffd700">👑 CROWN JEWELS LOOKUP</div>
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name" style="color:#ffd700">ip</span><span class="field-desc">Asset IP address</span></div>
+            <div class="field-row"><span class="field-name" style="color:#ffd700">mac</span><span class="field-desc">Asset MAC address</span></div>
+            <div class="field-row"><span class="field-name" style="color:#ffd700">asset_name</span><span class="field-desc">Device name/label</span></div>
+            <div class="field-row"><span class="field-name" style="color:#ffd700">criticality_tier</span><span class="field-desc">Crown / Yellow / etc.</span></div>
+          </div>
+        </div>
+        <div class="log-source-block" style="background:rgba(230,57,70,0.06);border-color:rgba(230,57,70,0.3)">
+          <div class="log-source-title" style="color:var(--accent-red)">MAC HISTORY LOOKUP (30d)</div>
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name" style="color:var(--accent-red)">mac</span><span class="field-desc">MAC address</span></div>
+            <div class="field-row"><span class="field-name" style="color:var(--accent-red)">ip</span><span class="field-desc">Last known IP</span></div>
+            <div class="field-row"><span class="field-name" style="color:var(--accent-red)">first_seen</span><span class="field-desc">First seen date</span></div>
+            <div class="field-row"><span class="field-name" style="color:var(--accent-red)">last_seen</span><span class="field-desc">Last seen date</span></div>
+          </div>
+        </div>
+        <div class="log-source-block" style="background:rgba(244,162,97,0.06);border-color:rgba(244,162,97,0.2)">
+          <div class="log-source-title" style="color:var(--accent-orange)">ARP LOGS</div>
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name" style="color:var(--accent-orange)">src_ip</span><span class="field-desc">Sender IP</span></div>
+            <div class="field-row"><span class="field-name" style="color:var(--accent-orange)">src_mac</span><span class="field-desc">Sender MAC</span></div>
+            <div class="field-row"><span class="field-name" style="color:var(--accent-orange)">action</span><span class="field-desc">arp_reply / req</span></div>
+            <div class="field-row"><span class="field-name" style="color:var(--accent-orange)">dest_ip</span><span class="field-desc">Target IP</span></div>
+          </div>
+        </div>
+        <div class="log-source-block" style="background:rgba(72,149,239,0.06);border-color:rgba(72,149,239,0.2)">
+          <div class="log-source-title" style="color:var(--accent-blue)">DHCP LOGS</div>
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name" style="color:var(--accent-blue)">assigned_ip</span><span class="field-desc">Leased IP</span></div>
+            <div class="field-row"><span class="field-name" style="color:var(--accent-blue)">client_mac</span><span class="field-desc">Client MAC</span></div>
+            <div class="field-row"><span class="field-name" style="color:var(--accent-blue)">message</span><span class="field-desc">DHCPACK / NAK</span></div>
+            <div class="field-row"><span class="field-name" style="color:var(--accent-blue)">hostname</span><span class="field-desc">Client hostname</span></div>
+          </div>
+        </div>
+        <div class="log-source-block" style="background:rgba(76,201,240,0.06);border-color:rgba(76,201,240,0.2)">
+          <div class="log-source-title" style="color:var(--accent-cyan)">NETWORK LOGS</div>
+          <div class="fields-grid">
+            <div class="field-row"><span class="field-name" style="color:var(--accent-cyan)">src_ip</span><span class="field-desc">Source IP</span></div>
+            <div class="field-row"><span class="field-name" style="color:var(--accent-cyan)">src_mac</span><span class="field-desc">Source MAC</span></div>
+            <div class="field-row"><span class="field-name" style="color:var(--accent-cyan)">dest_ip</span><span class="field-desc">Destination IP</span></div>
+            <div class="field-row"><span class="field-name" style="color:var(--accent-cyan)">proto</span><span class="field-desc">Protocol</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEVERITY LOGIC -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot" style="background:#f9c74f;box-shadow:0 0 6px #f9c74f"></div><h2 style="color:#f9c74f">Severity Logic</h2></div>
+      <div class="panel-body">
+        <div class="severity-item sev-critical">
+          <div class="sev-dot critical"></div>
+          <div>
+            <span class="sev-label critical">CRITICAL 🔴</span>
+            <div class="sev-desc"><strong style="color:#ff8888">Rule 1 — 2+ MACs same IP:</strong> always CRITICAL, no exceptions.<br><strong style="color:#ffd700">Rule 2 — Crown Jewel IP or MAC</strong> matches lookup → CRITICAL.<br><strong style="color:#ff8888">Rule 3 — NEW or IP_CHANGED MAC</strong> → CRITICAL.</div>
+          </div>
+        </div>
+        <div class="severity-item sev-high">
+          <div class="sev-dot high"></div>
+          <div>
+            <span class="sev-label high">HIGH</span>
+            <div class="sev-desc">Known MAC, not CJ. ARP conflict or dual-source traffic. Potential ARP spoofing / MITM on known OT device.</div>
+          </div>
+        </div>
+        <div class="severity-item sev-medium">
+          <div class="sev-dot medium"></div>
+          <div>
+            <span class="sev-label medium">MEDIUM</span>
+            <div class="sev-desc">Known MAC, not CJ. DHCP lease collision only. May be misconfiguration or failover. Validate with Operations.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COVERED SCENARIOS -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot" style="background:#4895ef;box-shadow:0 0 6px #4895ef"></div><h2 style="color:#4895ef">Covered Scenarios</h2></div>
+      <div class="panel-body">
+        <div class="scenario-item"><span class="scenario-icon" style="color:#ffd700">👑</span><div><div class="scenario-title">Crown Jewel IP/MAC Conflict</div><div class="scenario-desc">Any IP or MAC in the Crown Jewels list involved in a duplicate → CRITICAL regardless of conflict type</div></div></div>
+        <div class="scenario-item"><span class="scenario-icon" style="color:#e63946">🆕</span><div><div class="scenario-title">New Unauthorized Device</div><div class="scenario-desc">MAC never seen in 30d → CRITICAL. Unknown device claiming an OT IP. Investigate port via SNMP</div></div></div>
+        <div class="scenario-item"><span class="scenario-icon" style="color:#f4a261">🔄</span><div><div class="scenario-title">IP Change / Lateral Move</div><div class="scenario-desc">Known MAC, different IP → CRITICAL. May be reconfigured or moving laterally in the OT network</div></div></div>
+        <div class="scenario-item"><span class="scenario-icon" style="color:#9b5de5">💻</span><div><div class="scenario-title">VM / Cloned Instance</div><div class="scenario-desc">VM or failover clone started with duplicate IP — verify with OT team before any action</div></div></div>
+        <div class="scenario-item"><span class="scenario-icon" style="color:#f9c74f">⚙️</span><div><div class="scenario-title">Misconfiguration</div><div class="scenario-desc">Operator assigns duplicate static IP during maintenance — confirm with OT Operations before closing</div></div></div>
+      </div>
+    </div>
+
+  </div><!-- /right-col -->
+</div>
+
+<!-- ═══════════ WHAT WE LOOK FOR ═══════════ -->
+<div class="look-for-panel">
+  <span class="look-icon">🔍</span>
+  <div style="margin-right:16px">
+    <div style="font-family:var(--head);font-size:14px;font-weight:800;letter-spacing:2px;color:var(--text-bright);text-transform:uppercase;margin-bottom:8px">What We Look For</div>
+    <div class="look-items">
+      <div class="look-item">
+        <span class="look-badge" style="background:rgba(255,215,0,0.25);color:#ffd700;border:1px solid rgba(255,215,0,0.5)">CJ</span>
+        <span>Does the <strong>conflicting IP or MAC</strong> appear in the <strong>Crown Jewels lookup</strong>? If yes → <strong style="color:#ff4455">CRITICAL immediately</strong>. Crown Jewel assets demand the highest response priority — engage OT Operations before any further step.</span>
+      </div>
+      <div class="look-item">
+        <span class="look-badge lb-0">DUAL</span>
+        <span>Are there <strong>2 or more MACs</strong> responding to the same IP within the 1-minute window? If yes → <strong style="color:#ff4455">CRITICAL always</strong>. No exceptions — regardless of whether MACs are known or unknown.</span>
+      </div>
+      <div class="look-item">
+        <span class="look-badge lb-t">MAC</span>
+        <span>Is the conflicting MAC <strong>brand-new</strong> (no 30d history) or did it <strong>change its IP</strong>? Either → CRITICAL. Investigate via <strong>SNMP switch</strong> (port), <strong>ARP table</strong> (gateway), <strong>DHCP leases</strong> (hostname). Ask OT if a VM was cloned or a device was moved.</span>
+      </div>
+      <div class="look-item">
+        <span class="look-badge lb-b">OT</span>
+        <span>Always <strong>contact OT Operations</strong> before drawing conclusions. The conflict may be a planned VM migration, device replacement, or maintenance — confirm before escalating to Incident.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ DECISION TREE ═══════════ -->
+<div class="dt-section">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+    <span style="font-size:24px">🌳</span>
+    <div class="dt-title">Detection Analysis — Decision Tree</div>
+  </div>
+  <div class="dt-subtitle">
+    Query output already provides <strong style="color:#ffd700">CritReason</strong> — the tree adds the operational response layer.
+    <strong style="color:#ffd700">Crown Jewel</strong> and <strong style="color:#ff4455">Dual-MAC</strong> are CRITICAL on arrival — notify OT Operations immediately, no tree needed before that call.
+    Any containment action <strong>only after OT Operations approval</strong>.
+  </div>
+
+  <div class="tree">
+
+    <!-- START -->
+    <div style="background:rgba(244,162,97,0.12);border:2px solid rgba(244,162,97,0.5);border-radius:8px;padding:10px 22px;text-align:center;max-width:420px">
+      <span style="font-family:var(--head);font-size:11px;letter-spacing:2px;color:var(--accent-orange);font-weight:800;display:block;margin-bottom:3px">DETECTION TRIGGERED · Every 1 min</span>
+      <span style="font-size:13px;color:var(--text-bright);font-weight:600">Security Event — NET-IDP-01</span>
+      <div style="margin-top:6px;display:flex;justify-content:center;gap:6px;flex-wrap:wrap">
+        <span class="sev-inline sev-m">MEDIUM</span>
+        <span style="color:var(--text-dim);font-size:11px;align-self:center">→</span>
+        <span class="sev-inline sev-h">HIGH</span>
+        <span style="color:var(--text-dim);font-size:11px;align-self:center">→</span>
+        <span class="sev-inline sev-c">CRITICAL</span>
+      </div>
+    </div>
+    <div class="v-line crit"></div>
+
+    <!-- STEP 0 — CROWN JEWEL + DUAL-MAC GATE -->
+    <div class="dnode-crit" style="max-width:420px;width:420px">
+      <span class="dnode-step crit-label">⚡ Step 1 · Crown Jewel + Dual-MAC Gate</span>
+      <div class="dnode-q">Is the IP/MAC a <strong style="color:#ffd700">Crown Jewel</strong>, or are there <strong style="color:#ff4455">2+ MACs on the same IP</strong>?</div>
+      <div class="dnode-sub">Check CritReason = CROWN_JEWEL or DUAL_MAC_CONFLICT. Either = CRITICAL — notify before any further analysis.</div>
+    </div>
+    <div class="v-line crit"></div>
+    <div class="yn-row" style="width:420px"><span class="yn crit-y">YES → CRITICAL ↙</span><span class="yn crit-n">NO → continue ↘</span></div>
+
+    <div class="wide-branch">
+      <div class="wide-col"></div>
+      <div class="wide-col">
+        <div class="v-line crit"></div>
+        <div class="abox-critical">
+          <span class="abox-title">🔴 CRITICAL — NOTIFY OT OPS NOW</span>
+          <div class="abox-desc" style="text-align:left;margin-top:6px;font-size:11px">
+            <strong style="color:#ffd700">If Crown Jewel:</strong> document asset name, criticality tier, impacted OT process.<br>
+            <strong style="color:#ff8888">If Dual-MAC:</strong> two devices actively claiming the same IP.<br><br>
+            <strong style="color:#ff8888">Investigate before any action:</strong><br>
+            · SNMP switch → physical port of each MAC<br>
+            · ARP table on gateway → last known mapping<br>
+            · DHCP leases → hostname + timestamp<br>
+            · Ask OT: VM cloned? device replaced?
+          </div>
+          <div class="esc-methods" style="margin-top:8px">
+            <span class="esc-chip red">📞 CALL OT OPS</span>
+            <span class="esc-chip red">📧 EMAIL SOC</span>
+            <span class="esc-chip red">💬 SIEM ALERT</span>
+          </div>
+          <div class="irp-steps">
+            <span class="irp-step">CONTACT OT OPS</span>
+            <span class="irp-step">QUERY SNMP</span>
+            <span class="irp-step">ENGAGE IR</span>
+          </div>
+        </div>
+        <div class="v-line crit"></div>
+        <div style="font-family:var(--head);font-size:10px;color:#ff8888;letter-spacing:1px">↓ CONTINUE TREE — ALREADY CRITICAL</div>
+      </div>
+      <div class="wide-col" style="align-self:center"><div class="h-line green" style="width:110px"></div></div>
+      <div class="wide-col">
+        <div class="v-line green"></div>
+        <div class="abox close">
+          <span class="abox-title">✔ Not CJ — Not Dual-MAC</span>
+          <div class="abox-desc">No Crown Jewel match, single MAC conflict. Severity follows MacStatus / ConflictType. Continue tree.</div>
+        </div>
+        <div class="v-line green"></div>
+        <div style="font-family:var(--head);font-size:10px;color:var(--text-dim);letter-spacing:1px">↓ CONTINUE TREE</div>
+      </div>
+    </div>
+    <div class="v-line"></div>
+
+    <!-- STEP 1 — MAC STATUS -->
+    <div class="dnode" style="max-width:420px;width:420px">
+      <span class="dnode-step">Step 3 · MAC Status Check</span>
+      <div class="dnode-q">Is the conflicting MAC <strong>NEW</strong> (no 30d history) or did it <strong>change its IP</strong> (IP_CHANGED)?</div>
+      <div class="dnode-sub">Check MacStatus field. NEW or IP_CHANGED → escalate to CRITICAL and begin investigation.</div>
+    </div>
+    <div class="v-line"></div>
+    <div class="yn-row" style="width:420px"><span class="yn yes">YES (NEW / IP_CHANGED) ↙</span><span class="yn no">NO (KNOWN, same IP) ↘</span></div>
+
+    <div class="wide-branch">
+      <div class="wide-col"></div>
+      <div class="wide-col">
+        <div class="v-line red"></div>
+        <div class="abox raise" style="max-width:255px;width:255px">
+          <span class="abox-title">⬆ Raise to CRITICAL</span>
+          <div class="abox-desc" style="text-align:left">Unknown or moved MAC — cannot be attributed to a known asset without investigation.<br><br>
+            · SNMP switch → identify physical port<br>
+            · ARP / DHCP → hostname + timestamp<br>
+            · Ask OT: VM cloned or device moved?
+          </div>
+          <div class="esc-methods" style="margin-top:6px">
+            <span class="esc-chip">📞 CALL OT OPS</span>
+            <span class="esc-chip">📧 EMAIL SOC</span>
+            <span class="esc-chip">💬 SIEM</span>
+          </div>
+        </div>
+        <div class="v-line red"></div>
+        <div style="font-family:var(--head);font-size:10px;color:var(--text-dim);letter-spacing:1px">↓ CONTINUE TREE</div>
+      </div>
+      <div class="wide-col" style="align-self:center"><div class="h-line green" style="width:90px"></div></div>
+      <div class="wide-col">
+        <div class="v-line green"></div>
+        <div class="abox close">
+          <span class="abox-title">✔ KNOWN MAC — Same IP</span>
+          <div class="abox-desc">MAC has 30d history on this IP. Severity stays at HIGH or MEDIUM per ConflictType. Continue.</div>
+        </div>
+        <div class="v-line green"></div>
+        <div style="font-family:var(--head);font-size:10px;color:var(--text-dim);letter-spacing:1px">↓ CONTINUE TREE</div>
+      </div>
+    </div>
+    <div class="v-line"></div>
+
+    <!-- STEP 2 — OT OPERATIONS VALIDATION -->
+    <div class="dnode" style="max-width:420px;width:420px">
+      <span class="dnode-step">Step 2 · OT Operations Validation</span>
+      <div class="dnode-q">Does the <strong>OT Operations team</strong> recognize this conflict as planned? (VM migration, device replacement, maintenance)</div>
+      <div class="dnode-sub">Contact OT Operations directly. Ask if any activity in the last 24h explains the IP conflict. Mandatory before closing any alert.</div>
+    </div>
+    <div class="v-line"></div>
+    <div class="yn-row" style="width:420px"><span class="yn yes">YES — Authorized ↙</span><span class="yn no">NO — Not recognized ↘</span></div>
+
+    <div class="wide-branch">
+      <div class="wide-col"><div class="h-line green" style="width:90px;margin-top:11px"></div></div>
+      <div class="wide-col">
+        <div class="v-line green"></div>
+        <div class="abox close" style="max-width:255px;width:255px">
+          <span class="abox-title">✔ Close as False Positive</span>
+          <div class="abox-desc">Activity confirmed by OT Ops. Close as <strong>False Positive — Planned Activity</strong>. Document MAC, IP, responsible operator. Update <strong>mac_ip_history</strong> and asset inventory.</div>
+        </div>
+      </div>
+      <div class="wide-col" style="align-self:center"><div class="h-line red" style="width:90px"></div></div>
+      <div class="wide-col">
+        <div class="v-line red"></div>
+        <div class="abox raise" style="max-width:255px;width:255px">
+          <span class="abox-title">⬆ Raise Severity +1</span>
+          <div class="abox-desc">OT team has <strong>no knowledge</strong> of this conflict. Unauthorized activity confirmed. Escalate to senior analyst and engage IR if CRITICAL.</div>
+        </div>
+        <div class="v-line red"></div>
+        <div style="font-family:var(--head);font-size:10px;color:var(--text-dim);letter-spacing:1px">↓ ESCALATE</div>
+      </div>
+    </div>
+    <div class="v-line"></div>
+
+    <!-- FINAL -->
+    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:10px;padding:14px 20px;max-width:780px;width:100%;text-align:center">
+      <div style="font-family:var(--head);font-size:12px;font-weight:800;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:10px">Final Classification</div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <div style="background:rgba(72,149,239,0.08);border:1px solid rgba(72,149,239,0.3);border-radius:7px;padding:10px 14px;max-width:170px;text-align:center">
+          <div style="font-family:var(--head);font-size:13px;font-weight:800;color:var(--accent-blue)">🔵 LOW / MEDIUM</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:4px">OT Ops confirmed or DHCP-only known MAC. Close as <strong style="color:var(--text)">Security Event — No Incident</strong>. Update inventory.</div>
+        </div>
+        <div style="background:rgba(249,199,79,0.08);border:1px solid rgba(249,199,79,0.3);border-radius:7px;padding:10px 14px;max-width:180px;text-align:center">
+          <div style="font-family:var(--head);font-size:13px;font-weight:800;color:var(--accent-yellow)">🟡 HIGH</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Known MAC, ARP/dual conflict, not authorized by OT. Escalate to senior analyst. Investigate SNMP / ARP / DHCP.</div>
+        </div>
+        <div style="background:rgba(230,57,70,0.12);border:2px solid var(--accent-red);border-radius:7px;padding:10px 14px;max-width:290px;text-align:center;box-shadow:0 0 16px rgba(230,57,70,0.25);animation:pulseGlow 1.8s ease-in-out infinite">
+          <div style="font-family:var(--head);font-size:14px;font-weight:900;color:#ff3344">🔴 CRITICAL</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Crown Jewel · Dual-MAC · NEW · IP_CHANGED.<br><strong style="color:var(--accent-red)">Notify OT Operations immediately.</strong> Investigate SNMP/ARP/DHCP. Engage IR. Preserve all logs. Any containment action only after OT Operations approval.</div>
+          <div class="irp-steps" style="margin-top:7px">
+            <span class="irp-step">NOTIFY OT OPS</span>
+            <span class="irp-step">QUERY SNMP</span>
+            <span class="irp-step">ENGAGE IR</span>
+            <span class="irp-step">NOTIFY MGMT</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tree -->
+
+  <div class="tree-legend">
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(255,215,0,0.7);border:1px solid #ffd700"></div> Crown Jewel IP/MAC → CRITICAL (Rule 2)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(230,57,70,0.9);border:1px solid #e63946"></div> Dual-MAC / NEW / IP_CHANGED → CRITICAL</div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(230,57,70,0.6)"></div> Severity +1 raised</div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(67,170,139,0.6)"></div> Authorized / event closes</div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(244,162,97,0.6)"></div> Investigate with OT Operations</div>
+  </div>
+
+</div>
+
+
+</body></html>
