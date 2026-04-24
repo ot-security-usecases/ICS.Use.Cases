@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<!-- saved from url=(0043)file:///C:/Users/ruben/Downloads/OPCUA.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NET-OPCUA-01 | OPC-UA Security Modes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0d12;
+    --panel: #0f1520;
+    --panel2: #111827;
+    --border: #1e2d45;
+    --border2: #243550;
+    --accent-red: #e63946;
+    --accent-orange: #f4a261;
+    --accent-yellow: #f9c74f;
+    --accent-green: #43aa8b;
+    --accent-blue: #4895ef;
+    --accent-cyan: #4cc9f0;
+    --accent-purple: #c77dff;
+    --text: #c8d6e8;
+    --text-dim: #6b7f9a;
+    --text-bright: #eaf2ff;
+    --mono: 'Share Tech Mono', monospace;
+    --head: 'Barlow Condensed', sans-serif;
+    --body: 'Barlow', sans-serif;
+
+    /* Column accent colors */
+    --col1: #e63946;   /* None — red/danger */
+    --col2: #f9c74f;   /* Username+Password — yellow/warning */
+    --col3: #43aa8b;   /* Certificate — green/secure */
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 13px;
+    line-height: 1.5;
+    min-width: 1200px;
+  }
+
+  /* ══════════════════════════════════════════════════
+     HEADER
+  ══════════════════════════════════════════════════ */
+  .header {
+    background: linear-gradient(135deg, #0a0d12 0%, #0f1a2e 60%, #12203a 100%);
+    border-bottom: 2px solid var(--accent-cyan);
+    padding: 18px 28px 14px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeIn 0.6s ease both;
+  }
+  .header::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(90deg, transparent 0, transparent 59px, rgba(30,45,70,0.25) 60px);
+    pointer-events: none;
+  }
+  .header::after {
+    content: '';
+    position: absolute; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(76,201,240,0.45), transparent);
+    pointer-events: none;
+    animation: scanLine 4s ease-in-out infinite;
+  }
+  .header-top {
+    display: flex; align-items: flex-start; gap: 20px;
+    position: relative;
+  }
+  .use-case-label {
+    font-family: var(--head);
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 3px; color: var(--text-dim);
+    text-transform: uppercase; margin-bottom: 3px;
+  }
+  .main-id {
+    font-family: var(--head);
+    font-size: 58px; font-weight: 900;
+    color: var(--accent-cyan); line-height: 1;
+    letter-spacing: -1px;
+    animation: glowPulseCyan 3s ease-in-out infinite;
+  }
+  .main-title-block { flex: 1; }
+  .main-title {
+    font-family: var(--head);
+    font-size: 22px; font-weight: 800;
+    color: var(--text-bright); letter-spacing: 1px;
+    text-transform: uppercase; line-height: 1.2;
+    margin-top: 8px;
+  }
+  .proto-badge {
+    background: linear-gradient(135deg, #0d1a2e, #132040);
+    border: 1.5px solid var(--accent-cyan);
+    border-radius: 6px; padding: 6px 14px;
+    font-family: var(--head); font-size: 13px; font-weight: 700;
+    color: var(--accent-cyan); letter-spacing: 2px; text-transform: uppercase;
+    display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 0 10px rgba(76,201,240,0.25);
+    white-space: nowrap; align-self: flex-start; margin-top: 4px;
+    animation: fadeIn 0.8s ease 0.3s both;
+  }
+  .proto-badge::before { content: '⬡'; font-size: 16px; }
+
+  /* Meta strip */
+  .meta-strip {
+    display: flex; gap: 0;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 6px; margin-top: 14px;
+    overflow: hidden; position: relative;
+  }
+  .meta-item {
+    flex: 1; padding: 10px 16px;
+    border-right: 1px solid var(--border);
+    display: flex; gap: 10px; align-items: center;
+    transition: background 0.2s ease;
+  }
+  .meta-item:last-child { border-right: none; }
+  .meta-item:hover { background: rgba(255,255,255,0.03); }
+  .meta-icon { font-size: 20px; opacity: 0.8; }
+  .meta-label {
+    font-family: var(--head); font-size: 10px; font-weight: 700;
+    color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; display: block;
+  }
+  .meta-value {
+    font-family: var(--head); font-size: 15px; font-weight: 700;
+    color: var(--text-bright); display: block; margin-top: 1px;
+  }
+  .meta-value.cyan { color: var(--accent-cyan); }
+  .meta-value.red  { color: var(--accent-red); }
+  .meta-value.yellow { color: var(--accent-yellow); }
+  .meta-value.green  { color: var(--accent-green); }
+
+  /* ══════════════════════════════════════════════════
+     OPC-UA PROTOCOL OVERVIEW STRIP
+  ══════════════════════════════════════════════════ */
+  .overview-strip {
+    background: linear-gradient(90deg, rgba(76,201,240,0.05), rgba(114,9,183,0.05));
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex; gap: 28px; align-items: flex-start;
+    animation: fadeSlideUp 0.5s ease 0.1s both;
+  }
+  .overview-intro { flex: 2; }
+  .overview-intro h3 {
+    font-family: var(--head); font-size: 14px; font-weight: 800;
+    letter-spacing: 2px; color: var(--accent-cyan); text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .overview-intro p { font-size: 12.5px; color: var(--text); line-height: 1.6; margin-bottom: 5px; }
+  .versions-row { flex: 3; display: flex; gap: 10px; }
+  .ver-chip {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    border-radius: 6px; padding: 8px 12px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .ver-chip:hover { border-color: var(--accent-cyan); box-shadow: 0 0 10px rgba(76,201,240,0.15); }
+  .ver-num {
+    font-family: var(--head); font-size: 15px; font-weight: 800;
+    color: var(--accent-cyan); letter-spacing: 1px; display: block;
+  }
+  .ver-name { font-family: var(--head); font-size: 11px; font-weight: 700; color: var(--text-dim); letter-spacing: 1px; display: block; margin-bottom: 4px; }
+  .ver-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+  .ver-tag {
+    display: inline-block; margin-top: 5px;
+    padding: 1px 7px; border-radius: 3px;
+    font-family: var(--head); font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  }
+  .tag-legacy { background: rgba(244,162,97,0.2); color: var(--accent-orange); }
+  .tag-current { background: rgba(67,170,139,0.2); color: var(--accent-green); }
+  .tag-new { background: rgba(76,201,240,0.2); color: var(--accent-cyan); }
+
+  /* ══════════════════════════════════════════════════
+     SECURITY MODES HEADER BAND
+  ══════════════════════════════════════════════════ */
+  .modes-header {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    border-bottom: 2px solid var(--border);
+  }
+  .mode-banner {
+    padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 5px;
+    border-right: 1px solid var(--border);
+    position: relative; overflow: hidden;
+  }
+  .mode-banner:last-child { border-right: none; }
+  .mode-banner::before {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+  }
+  .mode-banner.col1::before { background: var(--col1); box-shadow: 0 0 10px rgba(230,57,70,0.6); }
+  .mode-banner.col2::before { background: var(--col2); box-shadow: 0 0 10px rgba(249,199,79,0.6); }
+  .mode-banner.col3::before { background: var(--col3); box-shadow: 0 0 10px rgba(67,170,139,0.6); }
+
+  .mode-banner.col1 { background: linear-gradient(135deg, rgba(230,57,70,0.08), transparent); }
+  .mode-banner.col2 { background: linear-gradient(135deg, rgba(249,199,79,0.06), transparent); }
+  .mode-banner.col3 { background: linear-gradient(135deg, rgba(67,170,139,0.06), transparent); }
+
+  .mode-icon { font-size: 28px; }
+  .mode-id {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text-dim); letter-spacing: 1px;
+  }
+  .mode-name {
+    font-family: var(--head); font-size: 20px; font-weight: 900;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+  .col1 .mode-name { color: var(--col1); }
+  .col2 .mode-name { color: var(--col2); }
+  .col3 .mode-name { color: var(--col3); }
+  .mode-sub { font-size: 11.5px; color: var(--text-dim); }
+  .mode-risk {
+    font-family: var(--head); font-size: 12px; font-weight: 700;
+    letter-spacing: 1px; padding: 3px 10px; border-radius: 4px;
+    display: inline-block; margin-top: 4px;
+  }
+  .risk-critical { background: rgba(230,57,70,0.2); color: var(--col1); border: 1px solid rgba(230,57,70,0.4); }
+  .risk-high     { background: rgba(249,199,79,0.15); color: var(--col2); border: 1px solid rgba(249,199,79,0.4); }
+  .risk-low      { background: rgba(67,170,139,0.15); color: var(--col3); border: 1px solid rgba(67,170,139,0.4); }
+
+  /* ══════════════════════════════════════════════════
+     THREE-COLUMN CONTENT GRID
+  ══════════════════════════════════════════════════ */
+  .col-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    min-height: 600px;
+  }
+  .col-content {
+    padding: 16px 18px;
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .col-content:last-child { border-right: none; }
+
+  /* Section block inside a column */
+  .col-section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: box-shadow 0.25s, border-color 0.25s;
+  }
+  .col-section:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.35); border-color: var(--border2); }
+  .col-sec-hdr {
+    padding: 7px 12px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--head); font-size: 11px; font-weight: 800;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim);
+  }
+  .col-sec-hdr .hdr-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+  .col1-dot { background: var(--col1); box-shadow: 0 0 6px var(--col1); }
+  .col2-dot { background: var(--col2); box-shadow: 0 0 6px var(--col2); }
+  .col3-dot { background: var(--col3); box-shadow: 0 0 6px var(--col3); }
+
+  .col-sec-body { padding: 12px 14px; }
+
+  /* ── Photo placeholder ── */
+  .photo-placeholder {
+    border-radius: 6px;
+    border: 1.5px dashed;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 6px; padding: 14px;
+    min-height: 110px;
+    position: relative; overflow: hidden;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .photo-placeholder:hover { opacity: 0.85; }
+  .photo-placeholder.c1 { border-color: rgba(230,57,70,0.4); background: rgba(230,57,70,0.04); }
+  .photo-placeholder.c2 { border-color: rgba(249,199,79,0.4); background: rgba(249,199,79,0.04); }
+  .photo-placeholder.c3 { border-color: rgba(67,170,139,0.4); background: rgba(67,170,139,0.04); }
+  .photo-icon { font-size: 24px; opacity: 0.5; }
+  .photo-label {
+    font-family: var(--head); font-size: 10px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase; opacity: 0.5;
+    text-align: center;
+  }
+  .photo-sublabel { font-size: 10px; color: var(--text-dim); text-align: center; opacity: 0.7; }
+
+  /* ── OPC-UA Commands list ── */
+  .cmd-list { display: flex; flex-direction: column; gap: 4px; }
+  .cmd-item {
+    display: flex; align-items: baseline; gap: 8px;
+    padding: 4px 8px;
+    background: rgba(255,255,255,0.025);
+    border-radius: 4px;
+    border-left: 2px solid rgba(230,57,70,0.5);
+    transition: background 0.15s;
+  }
+  .cmd-item:hover { background: rgba(230,57,70,0.07); }
+  .cmd-name { font-family: var(--mono); font-size: 11px; color: var(--accent-cyan); min-width: 120px; }
+  .cmd-desc { font-size: 11px; color: var(--text-dim); }
+  .cmd-danger {
+    font-family: var(--head); font-size: 9px; font-weight: 800;
+    letter-spacing: 1px; padding: 1px 5px; border-radius: 3px;
+    background: rgba(230,57,70,0.2); color: var(--accent-red);
+    margin-left: auto; white-space: nowrap;
+  }
+
+  /* ── Attack steps ── */
+  .attack-steps { display: flex; flex-direction: column; gap: 6px; }
+  .a-step {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .a-step:hover { transform: translateX(3px); }
+  .a-step-num {
+    font-family: var(--head); font-size: 12px; font-weight: 800;
+    min-width: 24px; height: 24px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .sn-red  { background: rgba(230,57,70,0.25); color: var(--col1); }
+  .sn-yel  { background: rgba(249,199,79,0.2);  color: var(--col2); }
+  .sn-grn  { background: rgba(67,170,139,0.2);  color: var(--col3); }
+  .a-step-title { font-weight: 600; color: var(--text-bright); font-size: 12px; display: block; }
+  .a-step-desc  { font-size: 11.5px; color: var(--text-dim); line-height: 1.5; }
+
+  /* ══════════════════════════════════════════════════
+     PACKET ANIMATION AREA
+  ══════════════════════════════════════════════════ */
+  .pkt-area {
+    border-radius: 6px;
+    background: #050810;
+    border: 1px solid rgba(72,149,239,0.15);
+    padding: 10px 12px;
+    min-height: 70px;
+    position: relative;
+    overflow: hidden;
+  }
+  .pkt-label {
+    font-family: var(--head); font-size: 9px; font-weight: 700;
+    letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .pkt-track {
+    display: flex; align-items: center; gap: 6px;
+    position: relative; height: 28px;
+  }
+  .pkt-node {
+    font-family: var(--head); font-size: 10px; font-weight: 700;
+    padding: 3px 8px; border-radius: 4px; white-space: nowrap; z-index: 2;
+  }
+  .pkt-wire {
+    flex: 1; height: 2px; position: relative; overflow: visible;
+    border-radius: 1px;
+  }
+
+  /* Animated packet dot */
+  .pkt-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    position: absolute; top: -4px;
+    animation: pktTravel 2s linear infinite;
+  }
+  .pkt-dot2 {
+    width: 10px; height: 10px; border-radius: 50%;
+    position: absolute; top: -4px;
+    animation: pktTravel 2s linear 1s infinite;
+  }
+
+  /* ── Col 1 — bare packets (red) ── */
+  .c1-wire { background: rgba(230,57,70,0.4); }
+  .c1-dot  { background: var(--col1); box-shadow: 0 0 8px var(--col1); }
+  .c1-node { background: rgba(230,57,70,0.15); color: var(--col1); border: 1px solid rgba(230,57,70,0.4); }
+
+  /* ── Col 2 — sniffed/intercepted (yellow→red) ── */
+  .c2-wire { background: rgba(249,199,79,0.4); }
+  .c2-dot  { background: var(--col2); box-shadow: 0 0 8px var(--col2); }
+  .c2-node { background: rgba(249,199,79,0.12); color: var(--col2); border: 1px solid rgba(249,199,79,0.4); }
+  .c2-attk { background: rgba(230,57,70,0.2); color: var(--col1); border: 1px solid rgba(230,57,70,0.4); }
+
+  /* ── Col 3 — encrypted (green) ── */
+  .c3-wire { background: rgba(67,170,139,0.4); }
+  .c3-dot  { background: var(--col3); box-shadow: 0 0 8px var(--col3); }
+  .c3-node { background: rgba(67,170,139,0.12); color: var(--col3); border: 1px solid rgba(67,170,139,0.4); }
+
+  /* lock symbol on wire for col3 */
+  .wire-lock {
+    position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
+    font-size: 12px; z-index: 3;
+    animation: lockPulse 2s ease-in-out infinite;
+  }
+
+  /* MITM ghost attacker (col2 only) */
+  .mitm-node {
+    background: rgba(230,57,70,0.2); color: var(--col1);
+    border: 1px dashed rgba(230,57,70,0.6);
+    font-family: var(--head); font-size: 10px; font-weight: 700;
+    padding: 3px 8px; border-radius: 4px; white-space: nowrap;
+    animation: mitmPulse 1.5s ease-in-out infinite;
+  }
+
+  /* ── Payload display ── */
+  .pkt-payload {
+    margin-top: 6px;
+    font-family: var(--mono); font-size: 10px;
+    color: var(--text-dim); line-height: 1.6;
+    padding: 5px 8px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 4px;
+    border-left: 2px solid rgba(255,255,255,0.1);
+  }
+  .pkt-payload.exposed { border-left-color: var(--col1); }
+  .pkt-payload.sniffed { border-left-color: var(--col2); }
+  .pkt-payload.encrypted {
+    border-left-color: var(--col3);
+    filter: blur(1.5px);
+    user-select: none;
+  }
+  .highlight-val { color: var(--accent-red); font-weight: 700; }
+  .highlight-enc { color: var(--col3); }
+
+  /* ══════════════════════════════════════════════════
+     THERMOMETER / RISK GAUGE SECTION
+  ══════════════════════════════════════════════════ */
+  .thermo-section {
+    border-top: 2px solid var(--border);
+    padding: 20px 28px;
+    background: linear-gradient(180deg, #090c11, #0b0f1a);
+    animation: fadeSlideUp 0.5s ease 0.5s both;
+  }
+  .thermo-title-row {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  }
+  .thermo-title {
+    font-family: var(--head); font-size: 17px; font-weight: 900;
+    letter-spacing: 2.5px; color: var(--text-bright); text-transform: uppercase;
+  }
+  .thermo-subtitle { font-size: 12px; color: var(--text-dim); }
+
+  .thermo-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 18px;
+  }
+  .thermo-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+    transition: box-shadow 0.25s;
+  }
+  .thermo-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.4); }
+  .thermo-card-top {
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .thermo-card-body { padding: 14px 16px; }
+
+  .thermometer {
+    width: 36px; position: relative; flex-shrink: 0;
+  }
+  .thermo-tube {
+    width: 14px; height: 90px; margin: 0 auto;
+    background: rgba(255,255,255,0.05);
+    border: 1.5px solid rgba(255,255,255,0.15);
+    border-radius: 7px 7px 0 0;
+    position: relative; overflow: hidden;
+  }
+  .thermo-fill {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    border-radius: 5px 5px 0 0;
+    transition: height 1s ease;
+  }
+  .thermo-bulb {
+    width: 22px; height: 22px; border-radius: 50%;
+    margin: -2px auto 0;
+    border: 2px solid rgba(255,255,255,0.2);
+    position: relative;
+  }
+  .thermo-bulb::after {
+    content: '';
+    position: absolute; inset: 3px;
+    border-radius: 50%;
+  }
+
+  /* Fill colors per mode */
+  .fill-c1 { background: linear-gradient(0deg, var(--col1), rgba(230,57,70,0.3)); height: 95%; }
+  .fill-c2 { background: linear-gradient(0deg, var(--col2), rgba(249,199,79,0.3));  height: 65%; }
+  .fill-c3 { background: linear-gradient(0deg, var(--col3), rgba(67,170,139,0.3)); height: 15%; }
+  .bulb-c1 { background: var(--col1); box-shadow: 0 0 12px var(--col1); }
+  .bulb-c1::after { background: rgba(255,120,120,0.5); }
+  .bulb-c2 { background: var(--col2); box-shadow: 0 0 12px var(--col2); }
+  .bulb-c2::after { background: rgba(255,220,100,0.5); }
+  .bulb-c3 { background: var(--col3); box-shadow: 0 0 10px var(--col3); }
+  .bulb-c3::after { background: rgba(100,200,160,0.5); }
+
+  .thermo-scale {
+    position: absolute; right: -18px; top: 0; bottom: 0;
+    display: flex; flex-direction: column; justify-content: space-between;
+    font-family: var(--mono); font-size: 8px; color: var(--text-dim);
+  }
+
+  .risk-label {
+    font-family: var(--head); font-size: 22px; font-weight: 900;
+    letter-spacing: 1px; line-height: 1;
+  }
+  .risk-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .risk-score {
+    font-family: var(--head); font-size: 40px; font-weight: 900;
+    line-height: 1; margin-left: auto;
+  }
+
+  .risk-detail { font-size: 12px; color: var(--text); line-height: 1.6; }
+  .risk-tag {
+    display: inline-block; margin-top: 5px;
+    padding: 2px 9px; border-radius: 4px;
+    font-family: var(--head); font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  }
+  .rt-c1 { background: rgba(230,57,70,0.2); color: var(--col1); border: 1px solid rgba(230,57,70,0.4); }
+  .rt-c2 { background: rgba(249,199,79,0.15); color: var(--col2); border: 1px solid rgba(249,199,79,0.4); }
+  .rt-c3 { background: rgba(67,170,139,0.15); color: var(--col3); border: 1px solid rgba(67,170,139,0.4); }
+
+  .bar-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .bar-row { display: flex; flex-direction: column; gap: 3px; }
+  .bar-lbl { font-size: 11px; color: var(--text-dim); display: flex; justify-content: space-between; }
+  .bar-track {
+    height: 6px; background: rgba(255,255,255,0.06);
+    border-radius: 3px; overflow: hidden;
+  }
+  .bar-fill { height: 100%; border-radius: 3px; }
+
+  /* ══════════════════════════════════════════════════
+     ATTACK MAPPING (MITRE + KILL CHAIN)
+  ══════════════════════════════════════════════════ */
+  .mapping-section {
+    border-top: 2px solid var(--border);
+    padding: 20px 28px;
+    animation: fadeSlideUp 0.5s ease 0.6s both;
+  }
+  .mapping-title-row {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+  }
+  .mapping-title {
+    font-family: var(--head); font-size: 17px; font-weight: 900;
+    letter-spacing: 2.5px; color: var(--text-bright); text-transform: uppercase;
+  }
+  .mapping-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .map-panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+  }
+  .map-panel-hdr {
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--head); font-size: 12px; font-weight: 800;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--accent-cyan);
+  }
+  .map-panel-body { padding: 12px 14px; }
+
+  .mitre-row {
+    display: flex; gap: 8px; align-items: flex-start;
+    padding: 7px 0; border-bottom: 1px solid rgba(30,45,70,0.5);
+  }
+  .mitre-row:last-child { border-bottom: none; }
+  .mitre-id {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    color: var(--accent-red); min-width: 70px; flex-shrink: 0;
+    background: rgba(230,57,70,0.1); padding: 2px 6px; border-radius: 3px;
+  }
+  .mitre-name { font-size: 12px; color: var(--text-bright); font-weight: 600; }
+  .mitre-sub  { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+  .mitre-cols { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 3px; }
+  .mc-badge {
+    font-family: var(--head); font-size: 9px; font-weight: 700; letter-spacing: 1px;
+    padding: 1px 6px; border-radius: 3px;
+  }
+  .mc-c1 { background: rgba(230,57,70,0.2); color: var(--col1); }
+  .mc-c2 { background: rgba(249,199,79,0.15); color: var(--col2); }
+  .mc-c3 { background: rgba(67,170,139,0.15); color: var(--col3); }
+
+  /* Kill chain timeline */
+  .kc-timeline { display: flex; flex-direction: column; gap: 0; }
+  .kc-phase {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 8px 0; position: relative;
+  }
+  .kc-phase:not(:last-child)::after {
+    content: '';
+    position: absolute; left: 15px; top: 32px; bottom: 0;
+    width: 2px; background: var(--border2);
+  }
+  .kc-circle {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; z-index: 1;
+    border: 2px solid;
+  }
+  .kc-body { flex: 1; padding-top: 4px; }
+  .kc-pname {
+    font-family: var(--head); font-size: 12px; font-weight: 800;
+    letter-spacing: 1px; text-transform: uppercase; display: block;
+  }
+  .kc-pdesc { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+  .kc-cols { display: flex; gap: 4px; margin-top: 3px; }
+
+  /* colors for kill chain phases */
+  .kcp-recon   { background: rgba(72,149,239,0.15); border-color: var(--accent-blue); color: var(--accent-blue); }
+  .kcp-weapon  { background: rgba(244,162,97,0.15); border-color: var(--accent-orange); color: var(--accent-orange); }
+  .kcp-deliver { background: rgba(249,199,79,0.15); border-color: var(--accent-yellow); color: var(--accent-yellow); }
+  .kcp-exploit { background: rgba(230,57,70,0.15); border-color: var(--col1); color: var(--col1); }
+  .kcp-install { background: rgba(199,125,255,0.15); border-color: var(--accent-purple); color: var(--accent-purple); }
+  .kcp-c2      { background: rgba(230,57,70,0.2); border-color: var(--col1); color: var(--col1); }
+  .kcp-action  { background: rgba(230,57,70,0.35); border-color: var(--col1); color: var(--col1); box-shadow: 0 0 10px rgba(230,57,70,0.3); }
+
+  .kc-pname.blue   { color: var(--accent-blue); }
+  .kc-pname.orange { color: var(--accent-orange); }
+  .kc-pname.yellow { color: var(--accent-yellow); }
+  .kc-pname.red    { color: var(--col1); }
+  .kc-pname.purple { color: var(--accent-purple); }
+
+  /* ══════════════════════════════════════════════════
+     ANIMATIONS
+  ══════════════════════════════════════════════════ */
+  @keyframes fadeIn       { from { opacity:0 } to { opacity:1 } }
+  @keyframes fadeSlideUp  { from { opacity:0; transform:translateY(18px) } to { opacity:1; transform:translateY(0) } }
+  @keyframes pulseGlow    { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  @keyframes scanLine     { 0%{top:-4px;opacity:0} 5%{opacity:.8} 95%{opacity:.8} 100%{top:100%;opacity:0} }
+  @keyframes glowPulseCyan{ 0%,100%{text-shadow:0 0 12px rgba(76,201,240,0.4)} 50%{text-shadow:0 0 32px rgba(76,201,240,0.9),0 0 8px rgba(76,201,240,0.5)} }
+  @keyframes pktTravel    { 0%{left:0;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{left:calc(100% - 10px);opacity:0} }
+  @keyframes mitmPulse    { 0%,100%{box-shadow:0 0 6px rgba(230,57,70,0.3)} 50%{box-shadow:0 0 16px rgba(230,57,70,0.7)} }
+  @keyframes lockPulse    { 0%,100%{opacity:0.7} 50%{opacity:1;text-shadow:0 0 8px rgba(67,170,139,0.8)} }
+  @keyframes arrowFlow    { 0%{background-position:0 0} 100%{background-position:40px 0} }
+
+  .col-content { animation: fadeSlideUp 0.5s ease 0.2s both; }
+  .col-content:nth-child(2) { animation-delay: 0.3s; }
+  .col-content:nth-child(3) { animation-delay: 0.4s; }
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════════════════════ -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <span class="use-case-label">OT/ICS Protocol Security · Reference Card</span>
+      <div class="main-id">NET-OPCUA-01</div>
+    </div>
+    <div class="main-title-block">
+      <div class="main-title">OPC-UA Security Modes<br>Attack Surface &amp; Authentication Analysis</div>
+    </div>
+    <div class="proto-badge">OPC Unified Architecture</div>
+  </div>
+
+  <div class="meta-strip">
+    
+    <div class="meta-item">
+      <span class="meta-icon">🔌</span>
+      <div>
+        <span class="meta-label">Default Port</span>
+        <span class="meta-value cyan">4840 TCP / 4843 TLS</span>
+      </div>
+    </div>
+    <div class="meta-item">
+      <span class="meta-icon">🏭</span>
+      <div>
+        <span class="meta-label">Environment</span>
+        <span class="meta-value">OT / ICS / SCADA</span>
+      </div>
+    </div>
+    <div class="meta-item">
+      <span class="meta-icon">⚙️</span>
+      <div>
+        <span class="meta-label">Transport</span>
+        <span class="meta-value">UA-TCP · HTTPS · WebSockets</span>
+      </div>
+    </div>
+    <div class="meta-item">
+      <span class="meta-icon">📋</span>
+      <div>
+        <span class="meta-label">Spec</span>
+        <span class="meta-value cyan">IEC 62541</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     PROTOCOL OVERVIEW
+══════════════════════════════════════════════════════════ -->
+<div class="overview-strip">
+  <div class="overview-intro">
+    <h3>What is OPC-UA?</h3>
+    <p>OPC Unified Architecture is the <strong>de-facto standard</strong> for secure, reliable, platform-independent data exchange in industrial automation. It replaces the legacy COM/DCOM-based OPC Classic and adds a layered security model — but security is <strong>optional by configuration</strong>.</p>
+    <p>Three security modes can be set per endpoint session: <span style="color:var(--col1);font-weight:600">None</span>, <span style="color:var(--col2);font-weight:600">Sign</span>, and <span style="color:var(--col3);font-weight:600">Sign &amp; Encrypt</span> — each with dramatically different attack surfaces.</p>
+  </div>
+  <div class="versions-row">
+    <div class="ver-chip">
+      <span class="ver-num">OPC-UA 1.00</span>
+      <span class="ver-name">2006 · Foundational</span>
+      <div class="ver-desc">First unified spec. Introduced binary UA-TCP transport and the core security framework. Many PLCs still ship with this version.</div>
+      <span class="ver-tag tag-legacy">LEGACY</span>
+    </div>
+    <div class="ver-chip">
+      <span class="ver-num">OPC-UA 1.03</span>
+      <span class="ver-name">2015 · Widely Deployed</span>
+      <div class="ver-desc">Added HTTPS transport, PubSub precursor, improved certificate management. Most SCADA deployments in production today.</div>
+      <span class="ver-tag tag-current">COMMON</span>
+    </div>
+    <div class="ver-chip">
+      <span class="ver-num">OPC-UA 1.04</span>
+      <span class="ver-name">2017 · PubSub + GDS</span>
+      <div class="ver-desc">Full PubSub model, Global Discovery Server (GDS), improved security policies. Recommended for new deployments.</div>
+      <span class="ver-tag tag-current">RECOMMENDED</span>
+    </div>
+    <div class="ver-chip">
+      <span class="ver-num">OPC-UA 1.05</span>
+      <span class="ver-name">2022 · Current</span>
+      <div class="ver-desc">Reverse Connect, improved Role-Based Access Control (RBAC), enhanced PubSub security. Mandates TLS 1.2+ for HTTPS.</div>
+      <span class="ver-tag tag-new">LATEST</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODE HEADER BANNERS
+══════════════════════════════════════════════════════════ -->
+<div class="modes-header">
+  <div class="mode-banner col1">
+    <span class="mode-icon">🔓</span>
+    <span class="mode-id">SecurityMode = None · MessageSecurity = None</span>
+    <span class="mode-name">No Authentication</span>
+    <span class="mode-sub">Anonymous access · No credentials required · Plaintext transport</span>
+    <span class="mode-risk risk-critical">⚠ CRITICAL RISK — DIRECT ATTACK</span>
+  </div>
+  <div class="mode-banner col2">
+    <span class="mode-icon">🔑</span>
+    <span class="mode-id">SecurityMode = None · UserToken = Username/Password</span>
+    <span class="mode-name">Username + Password</span>
+    <span class="mode-sub">Credentials required · No transport encryption · Credentials in cleartext</span>
+    <span class="mode-risk risk-high">⚡ HIGH RISK — CREDENTIAL CAPTURE</span>
+  </div>
+  <div class="mode-banner col3">
+    <span class="mode-icon">🛡️</span>
+    <span class="mode-id">SecurityMode = SignAndEncrypt · UserToken = X.509 Certificate</span>
+    <span class="mode-name">Certificate Auth + Encryption</span>
+    <span class="mode-sub">Mutual TLS · Signed &amp; encrypted session · Certificate pinning</span>
+    <span class="mode-risk risk-low">✔ LOW RISK — RECOMMENDED</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     THREE-COLUMN DETAIL CONTENT
+══════════════════════════════════════════════════════════ -->
+<div class="col-grid">
+
+  <!-- ─────────────────── COLUMN 1 — NO AUTH ─────────────────── -->
+  <div class="col-content">
+
+    <!-- Packet Animation -->
+    <div class="col-section">
+      <div class="col-sec-hdr"><div class="hdr-dot col1-dot"></div>Live Traffic Simulation</div>
+      <div class="col-sec-body">
+        <div class="pkt-area">
+          <div class="pkt-label">Network packet flow — Port 4840 (unencrypted)</div>
+          <div class="pkt-track">
+            <div class="pkt-node c1-node">ATTACKER</div>
+            <div class="pkt-wire c1-wire">
+              <div class="pkt-dot c1-dot"></div>
+              <div class="pkt-dot2 c1-dot"></div>
+            </div>
+            <div class="pkt-node c1-node">OPC-UA SERVER</div>
+          </div>
+          <div class="pkt-payload exposed">
+<span style="color:var(--text-dim)">MSG TYPE:</span> <span class="highlight-val">CreateSession</span> → <span class="highlight-val">ActivateSession</span> → <span class="highlight-val">Write</span>
+<span style="color:var(--text-dim)">AUTH    :</span> <span class="highlight-val">AnonymousIdentityToken {}</span>
+<span style="color:var(--text-dim)">NODE-ID :</span> ns=2;s=Reactor1.Valve.Control → <span class="highlight-val">Value=1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="col-section">
+      <div class="col-sec-hdr"><div class="hdr-dot col1-dot"></div>How It Works</div>
+      <div class="col-sec-body">
+        <div class="attack-steps">
+          <div class="a-step">
+            <div class="a-step-num sn-red">1</div>
+            <div>
+              <span class="a-step-title">Discover Endpoint</span>
+              <div class="a-step-desc">Attacker calls <code style="font-family:var(--mono);font-size:10px;color:var(--accent-cyan)">GetEndpoints</code> on port 4840. Server openly advertises SecurityMode=None endpoints — no interaction needed.</div>
+            </div>
+          </div>
+          <div class="a-step">
+            <div class="a-step-num sn-red">2</div>
+            <div>
+              <span class="a-step-title">Open Session — Zero Credentials</span>
+              <div class="a-step-desc">Sends <code style="font-family:var(--mono);font-size:10px;color:var(--accent-cyan)">CreateSession</code> + <code style="font-family:var(--mono);font-size:10px;color:var(--accent-cyan)">ActivateSession</code> with <code style="font-family:var(--mono);font-size:10px;color:var(--accent-red)">AnonymousIdentityToken</code>. Server accepts immediately.</div>
+            </div>
+          </div>
+          <div class="a-step">
+            <div class="a-step-num sn-red">3</div>
+            <div>
+              <span class="a-step-title">Browse Address Space</span>
+              <div class="a-step-desc">Uses <code style="font-family:var(--mono);font-size:10px;color:var(--accent-cyan)">Browse</code> service to enumerate all nodes — PLCs, sensors, actuators, process variables.</div>
+            </div>
+          </div>
+          <div class="a-step">
+            <div class="a-step-num sn-red">4</div>
+            <div>
+              <span class="a-step-title">Read / Write Process Values</span>
+              <div class="a-step-desc">Direct <code style="font-family:var(--mono);font-size:10px;color:var(--accent-cyan)">Read</code> and <code style="font-family:var(--mono);font-size:10px;color:var(--accent-red)">Write</code> calls to any node. No authentication. Full process control achieved.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPC-UA Commands -->
+    <div class="col-section">
+      <div class="col-sec-hdr"><div class="hdr-dot col1-dot"></div>Exploitable OPC-UA Services</div>
+      <div class="col-sec-body">
+        <div class="cmd-list">
+          <div class="cmd-item">
+            <span class="cmd-name">GetEndpoints</span>
+            <span class="cmd-desc">Lists all exposed security endpoints</span>
+            <span class="cmd-danger">ENUM</span>
+          </div>
+          <div class="cmd-item">
+            <span class="cmd-name">Browse</span>
+            <span class="cmd-desc">Full address space enumeration</span>
+            <span class="cmd-danger">RECON</span>
+          </div>
+          <div class="cmd-item">
+            <span class="cmd-name">Read</span>
+            <span class="cmd-desc">Read any process variable / sensor</span>
+            <span class="cmd-danger">EXFIL</span>
+          </div>
+          <div class="cmd-item">
+            <span class="cmd-name">Write</span>
+            <span class="cmd-desc">Overwrite setpoints, valve states</span>
+            <span class="cmd-danger">IMPACT</span>
+          </div>
+          <div class="cmd-item">
+            <span class="cmd-name">Call</span>
+            <span class="cmd-desc">Invoke server methods on devices</span>
+            <span class="cmd-danger">EXEC</span>
+          </div>
+          <div class="cmd-item">
+            <span class="cmd-name">Subscribe/Publish</span>
+            <span class="cmd-desc">Monitor all process state changes</span>
+            <span class="cmd-danger">SPY</span>
+          </div>
+          <div class="cmd-item">
+            <span class="cmd-name">CreateMonitoredItem</span>
+            <span class="cmd-desc">Persistent covert monitoring</span>
+            <span class="cmd-danger">PERSIST</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Evidence placeholder -->
+    <div class="col-section">
+      <div class="col-sec-hdr"><div class="hdr-dot col1-dot"></div>Evidence — Anonymous Session Capture</div>
+      <div class="col-sec-body" style="display:flex;flex-direction:column;gap:8px">
+        <div class="photo-placeholder c1">
+    <a href="./NET-OPCUA-01 _ OPC-UA Security Modes_files/opcuanon.png" target="_blank">
+        <img src="./NET-OPCUA-01 _ OPC-UA Security Modes_files/opcuanon.png" style="max-width: 100%; height: auto; cursor: zoom-in;" alt="OPC-UA Browse Response">
+    </a>
+</div>
+        
+      </div>
+    </div>
+
+  </div><!-- /col1 -->
+
+  <!-- ─────────────────── COLUMN 2 — USER/PASS ─────────────────── -->
+  <div class="col-content">
+
+    <!-- Packet Animation -->
+    <div class="col-section">
+      <div class="col-sec-hdr"><div class="hdr-dot col2-dot"></div>Live Traffic Simulation — MitM / Sniff</div>
+      <div class="col-sec-body">
+        <div class="pkt-area">
+          <div class="pkt-label">Credential capture via passive sniff or session hijack</div>
+          <!-- Normal flow line with MITM wedge -->
+          <div class="pkt-track">
+            <div class="pkt-node c2-node">CLIENT</div>
+            <div class="pkt-wire c2-wire" style="flex:1;position:relative">
+              <div class="pkt-dot c2-dot"></div>
+              <!-- MITM node floating above wire -->
+              <div style="position:absolute;top:-28px;left:50%;transform:translateX(-50%);z-index:10">
+                <div class="mitm-node">👾 ATTACKER<br><span style="font-size:9px;color:var(--text-dim)">sniff / replay</span></div>
+              </div>
+              <div style="position:absolute;top:10px;left:48%;font-size:10px;color:var(--accent-red);animation:mitmPulse 1.5s infinite">↑</div>
+            </div>
+            <div class="pkt-node c2-node">SERVER</div>
+          </div>
+          <div class="pkt-payload sniffed">
+<span style="color:var(--text-dim)">MSG TYPE:</span> ActivateSession Request
+<span style="color:var(--text-dim)">TOKEN   :</span> UserNameIdentityToken {
+  <span class="highlight-val">userName: "opcadmin"</span>
+  <span class="highlight-val">password: "Siemens123!"</span>
+  policyId: "username" }
+<span style="color:var(--text-dim)">SECURITY:</span> <span class="highlight-val">NONE — cleartext over wire</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attack vectors -->
+    <div class="col-section">
+      <div class="col-sec-hdr"><div class="hdr-dot col2-dot"></div>Attack Vectors</div>
+      <div class="col-sec-body">
+        <div class="attack-steps">
+          <div class="a-step" style="border-color:rgba(249,199,79,0.25)">
+            <div class="a-step-num sn-yel">A</div>
+            <div>
+              <span class="a-step-title" style="color:var(--col2)">Vector 1 — Passive Sniffing</span>
+              <div class="a-step-desc">Attacker on same OT VLAN runs Wireshark/tcpdump targeting port 4840. OPC-UA <strong>UserNameIdentityToken</strong> sends credentials as plaintext in the <code style="font-family:var(--mono);font-size:10px;color:var(--accent-cyan)">ActivateSession</code> request body. Credentials captured immediately.</div>
+            </div>
+          </div>
+          <div class="a-step" style="border-color:rgba(249,199,79,0.25)">
+            <div class="a-step-num sn-yel">B</div>
+            <div>
+              <span class="a-step-title" style="color:var(--col2)">Vector 2 — ARP Spoofing / MitM</span>
+              <div class="a-step-desc">Attacker poisons ARP cache to intercept traffic between OPC-UA client and server. Kills existing session via TCP RST, waits for automatic reconnect — client re-authenticates sending credentials through attacker's relay.</div>
+            </div>
+          </div>
+          <div class="a-step" style="border-color:rgba(249,199,79,0.25)">
+            <div class="a-step-num sn-yel">C</div>
+            <div>
+              <span class="a-step-title" style="color:var(--col2)">Vector 3 — Session Token Replay</span>
+              <div class="a-step-desc">Captured AuthenticationToken from a valid session can be replayed within the session timeout window. Attacker injects <code style="font-family:var(--mono);font-size:10px;color:var(--accent-cyan)">Write</code> requests using the stolen token — no need to crack the password.</div>
+            </div>
+          </div>
+          <div class="a-step" style="border-color:rgba(249,199,79,0.25)">
+            <div class="a-step-num sn-yel">D</div>
+            <div>
+              <span class="a-step-title" style="color:var(--col2)">Vector 4 — Credential Brute Force</span>
+              <div class="a-step-desc">OPC-UA servers without lockout policies allow unlimited login attempts. Automated tools (e.g. <code style="font-family:var(--mono);font-size:10px;color:var(--accent-cyan)">opcua-client-cli</code>) can brute force common OT default credentials.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MitM Step-by-Step -->
+    <div class="col-section">
+      <div class="col-sec-hdr"><div class="hdr-dot col2-dot"></div>MitM Kill Sequence — Step by Step</div>
+      <div class="col-sec-body">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(30,45,70,0.5)">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--accent-red);background:rgba(230,57,70,0.15);padding:2px 6px;border-radius:3px;min-width:52px;text-align:center">arp -a</span>
+            <span style="font-size:11px;color:var(--text-dim)">Discover gateway + OPC-UA server IPs on segment</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(30,45,70,0.5)">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--accent-yellow);background:rgba(249,199,79,0.1);padding:2px 6px;border-radius:3px;min-width:52px;text-align:center">arpspoof</span>
+            <span style="font-size:11px;color:var(--text-dim)">Poison ARP table: send fake ARP replies to redirect traffic</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(30,45,70,0.5)">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--accent-yellow);background:rgba(249,199,79,0.1);padding:2px 6px;border-radius:3px;min-width:52px;text-align:center">TCP RST</span>
+            <span style="font-size:11px;color:var(--text-dim)">Inject TCP reset to kill active OPC-UA session — forces reconnect</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(30,45,70,0.5)">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--accent-red);background:rgba(230,57,70,0.15);padding:2px 6px;border-radius:3px;min-width:52px;text-align:center">capture</span>
+            <span style="font-size:11px;color:var(--text-dim)"><code style="color:var(--accent-red)">ActivateSession</code> request flows through attacker — credentials extracted from payload</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 0">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--accent-red);background:rgba(230,57,70,0.2);padding:2px 6px;border-radius:3px;min-width:52px;text-align:center">Write</span>
+            <span style="font-size:11px;color:var(--text-dim)">Replay credentials or tokens to execute <code style="color:var(--accent-red)">Write</code> commands on process nodes</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Evidence placeholders -->
+    <div class="col-section">
+      <div class="col-sec-hdr"><div class="hdr-dot col2-dot"></div>Evidence — Credential Capture</div>
+      <div class="col-sec-body" style="display:flex;flex-direction:column;gap:8px">
+        <div class="photo-placeholder c1">
+    <a href="./NET-OPCUA-01 _ OPC-UA Security Modes_files/opcuaauth.jpg" target="_blank">
+        <img src="./NET-OPCUA-01 _ OPC-UA Security Modes_files/opcuaauth.jpg" style="max-width: 100%; height: auto; cursor: zoom-in;" alt="OPC-UA Browse Response">
+    </a>
+</div>
+        
+      </div>
+    </div>
+
+  </div><!-- /col2 -->
+
+  <!-- ─────────────────── COLUMN 3 — CERTIFICATE ─────────────────── -->
+  <div class="col-content">
+
+    <!-- Packet Animation -->
+    <div class="col-section">
+      <div class="col-sec-hdr"><div class="hdr-dot col3-dot"></div>Live Traffic Simulation — Encrypted Session</div>
+      <div class="col-sec-body">
+        <div class="pkt-area">
+          <div class="pkt-label">TLS mutual auth · SignAndEncrypt · Port 4840/4843</div>
+          <div class="pkt-track">
+            <div class="pkt-node c3-node">CLIENT</div>
+            <div class="pkt-wire c3-wire" style="flex:1;position:relative">
+              <div class="pkt-dot c3-dot"></div>
+              <div class="pkt-dot2 c3-dot"></div>
+              <div class="wire-lock">🔒</div>
+            </div>
+            <div class="pkt-node c3-node">SERVER</div>
+          </div>
+          <div class="pkt-payload encrypted">
+<span style="color:var(--text-dim)">HANDSHAKE:</span> TLSv1.3 · AES-256-GCM · RSA-2048
+CERT CLIENT : CN=opcua-client.plant.local [VERIFIED]
+CERT SERVER : CN=opcua-server.plant.local [PINNED]
+SESSION KEY : <span class="highlight-enc">⬛⬛⬛⬛⬛⬛⬛⬛ [EPHEMERAL]</span>
+PAYLOAD     : <span class="highlight-enc">█████████████████████ [ENCRYPTED]</span>
+          </div>
+          <div style="margin-top:6px;font-size:10px;color:var(--accent-green);font-family:var(--head);font-weight:700;letter-spacing:1px">
+            ✔ PAYLOAD NOT READABLE · CERT PINNING BLOCKS MITM
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why it works -->
+    <div class="col-section">
+      <div class="col-sec-hdr"><div class="hdr-dot col3-dot"></div>Why This Mode Blocks Attacks</div>
+      <div class="col-sec-body">
+        <div class="attack-steps">
+          <div class="a-step" style="border-color:rgba(67,170,139,0.3)">
+            <div class="a-step-num sn-grn">✔</div>
+            <div>
+              <span class="a-step-title" style="color:var(--col3)">Mutual Certificate Authentication</span>
+              <div class="a-step-desc">Both client and server must present valid X.509 certificates. Server validates client cert against its trusted store — anonymous or username tokens are <strong>rejected at handshake</strong>.</div>
+            </div>
+          </div>
+          <div class="a-step" style="border-color:rgba(67,170,139,0.3)">
+            <div class="a-step-num sn-grn">✔</div>
+            <div>
+              <span class="a-step-title" style="color:var(--col3)">End-to-End Encryption (SignAndEncrypt)</span>
+              <div class="a-step-desc">Full message signing + AES-256 encryption. Passive sniffing yields only ciphertext. MitM cannot decrypt or modify payloads without the private key.</div>
+            </div>
+          </div>
+          <div class="a-step" style="border-color:rgba(67,170,139,0.3)">
+            <div class="a-step-num sn-grn">✔</div>
+            <div>
+              <span class="a-step-title" style="color:var(--col3)">Certificate Pinning Blocks MitM</span>
+              <div class="a-step-desc">OPC-UA servers maintain a certificate trust list. A rogue certificate (attacker proxy) is rejected — the ARP-spoof relay technique fails as the handshake aborts.</div>
+            </div>
+          </div>
+          <div class="a-step" style="border-color:rgba(67,170,139,0.3)">
+            <div class="a-step-num sn-grn">✔</div>
+            <div>
+              <span class="a-step-title" style="color:var(--col3)">Residual Risk — Endpoint Compromise</span>
+              <div class="a-step-desc">Attack surface shifts to <strong>key theft</strong> or <strong>endpoint compromise</strong>: stealing the private key from the client/server filesystem, or compromising the HMI that holds a trusted certificate.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security Configuration -->
+    <div class="col-section">
+      <div class="col-sec-hdr"><div class="hdr-dot col3-dot"></div>Secure Configuration Checklist</div>
+      <div class="col-sec-body">
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid rgba(30,45,70,0.5)">
+            <span style="color:var(--col3);font-size:14px;flex-shrink:0">✔</span>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text-bright)">Disable SecurityMode = None endpoints</div>
+              <div style="font-size:11px;color:var(--text-dim)">Remove anonymous + unauthenticated endpoints from server configuration</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid rgba(30,45,70,0.5)">
+            <span style="color:var(--col3);font-size:14px;flex-shrink:0">✔</span>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text-bright)">Use SignAndEncrypt mode only</div>
+              <div style="font-size:11px;color:var(--text-dim)">Policy: Basic256Sha256 or Aes256Sha256RsaPss (avoid Basic128Rsa15)</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid rgba(30,45,70,0.5)">
+            <span style="color:var(--col3);font-size:14px;flex-shrink:0">✔</span>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text-bright)">Issue device-specific certificates</div>
+              <div style="font-size:11px;color:var(--text-dim)">Each OPC-UA client gets a unique cert — enables per-device revocation</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid rgba(30,45,70,0.5)">
+            <span style="color:var(--col3);font-size:14px;flex-shrink:0">✔</span>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text-bright)">Implement Role-Based Access Control</div>
+              <div style="font-size:11px;color:var(--text-dim)">OPC-UA 1.04+ RBAC — restrict Write/Call permissions per identity</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0">
+            <span style="color:var(--col3);font-size:14px;flex-shrink:0">✔</span>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text-bright)">Monitor certificate expirations via GDS</div>
+              <div style="font-size:11px;color:var(--text-dim)">Use Global Discovery Server for automated cert lifecycle management</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Evidence placeholder -->
+    <div class="col-section">
+      <div class="col-sec-hdr"><div class="hdr-dot col3-dot"></div>Evidence — Encrypted Session Baseline</div>
+      <div class="col-sec-body" style="display:flex;flex-direction:column;gap:8px">
+        <div class="photo-placeholder c1">
+    <a href="./NET-OPCUA-01 _ OPC-UA Security Modes_files/opcuacert.png" target="_blank">
+        <img src="./NET-OPCUA-01 _ OPC-UA Security Modes_files/opcuacert.png" style="max-width: 100%; height: auto; cursor: zoom-in;" alt="OPC-UA Browse Response">
+    </a>
+</div>
+        
+      </div>
+    </div>
+
+  </div><!-- /col3 -->
+
+</div><!-- /col-grid -->
+
+<!-- ═══════════════════════════════════════════════════════
+     THERMOMETER RISK SECTION
+══════════════════════════════════════════════════════════ -->
+<div class="thermo-section">
+  <div class="thermo-title-row">
+    <span style="font-size:26px">🌡️</span>
+    <div>
+      <div class="thermo-title">Plant Takeover Risk Gauge</div>
+      <div class="thermo-subtitle">How easy is it for an attacker to seize industrial process control? Evaluated per security mode.</div>
+    </div>
+  </div>
+
+  <div class="thermo-grid">
+
+    <!-- CARD 1 — No Auth -->
+    <div class="thermo-card">
+      <div class="thermo-card-top">
+        <div class="thermometer">
+          <div style="position:relative">
+            <div class="thermo-tube">
+              <div class="thermo-fill fill-c1"></div>
+              <div class="thermo-scale">
+                <span>100</span><span>75</span><span>50</span><span>25</span><span>0</span>
+              </div>
+            </div>
+            <div class="thermo-bulb bulb-c1"></div>
+          </div>
+        </div>
+        <div style="flex:1">
+          <div class="risk-label" style="color:var(--col1)">CRITICAL</div>
+          <div class="risk-sub">Plant Takeover Ease</div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">
+            <span class="risk-score" style="color:var(--col1)">9.8</span>
+            <span style="font-family:var(--head);font-size:12px;color:var(--text-dim)">/10</span>
+          </div>
+        </div>
+      </div>
+      <div class="thermo-card-body">
+        <div class="risk-detail">No credentials, no encryption, no barrier. Any device on the OT network can connect, browse the full address space, read all process variables and <strong style="color:var(--col1)">issue write commands within seconds</strong>. Tools like UA Expert or python-opcua require zero configuration.</div>
+        <span class="risk-tag rt-c1" style="margin-top:8px;display:inline-block">⚡ TIME TO ATTACK: &lt; 60 sec</span>
+        <div class="bar-list">
+          <div class="bar-row">
+            <div class="bar-lbl"><span>Skill Required</span><span style="color:var(--col1)">None</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:98%;background:var(--col1)"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-lbl"><span>Tools Needed</span><span style="color:var(--col1)">Free / Public</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:95%;background:rgba(230,57,70,0.7)"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-lbl"><span>Detection</span><span style="color:var(--accent-green)">Low</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:25%;background:var(--accent-green)"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD 2 — User/Pass -->
+    <div class="thermo-card">
+      <div class="thermo-card-top">
+        <div class="thermometer">
+          <div style="position:relative">
+            <div class="thermo-tube">
+              <div class="thermo-fill fill-c2"></div>
+              <div class="thermo-scale">
+                <span>100</span><span>75</span><span>50</span><span>25</span><span>0</span>
+              </div>
+            </div>
+            <div class="thermo-bulb bulb-c2"></div>
+          </div>
+        </div>
+        <div style="flex:1">
+          <div class="risk-label" style="color:var(--col2)">HIGH</div>
+          <div class="risk-sub">Plant Takeover Ease</div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">
+            <span class="risk-score" style="color:var(--col2)">7.4</span>
+            <span style="font-family:var(--head);font-size:12px;color:var(--text-dim)">/10</span>
+          </div>
+        </div>
+      </div>
+      <div class="thermo-card-body">
+        <div class="risk-detail">Credentials provide a minimal barrier — but are transmitted in <strong style="color:var(--col2)">cleartext over the wire</strong>. Any attacker with network access can capture them passively or via ARP spoofing within minutes. Once captured, full session access is obtained.</div>
+        <span class="risk-tag rt-c2" style="margin-top:8px;display:inline-block">⚡ TIME TO ATTACK: 5–15 min</span>
+        <div class="bar-list">
+          <div class="bar-row">
+            <div class="bar-lbl"><span>Skill Required</span><span style="color:var(--col2)">Low</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:35%;background:var(--col2)"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-lbl"><span>Tools Needed</span><span style="color:var(--col2)">Wireshark / arpspoof</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:40%;background:rgba(249,199,79,0.7)"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-lbl"><span>Detection</span><span style="color:var(--accent-yellow)">Medium</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:50%;background:var(--accent-yellow)"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD 3 — Certificate -->
+    <div class="thermo-card">
+      <div class="thermo-card-top">
+        <div class="thermometer">
+          <div style="position:relative">
+            <div class="thermo-tube">
+              <div class="thermo-fill fill-c3"></div>
+              <div class="thermo-scale">
+                <span>100</span><span>75</span><span>50</span><span>25</span><span>0</span>
+              </div>
+            </div>
+            <div class="thermo-bulb bulb-c3"></div>
+          </div>
+        </div>
+        <div style="flex:1">
+          <div class="risk-label" style="color:var(--col3)">LOW</div>
+          <div class="risk-sub">Plant Takeover Ease</div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">
+            <span class="risk-score" style="color:var(--col3)">1.8</span>
+            <span style="font-family:var(--head);font-size:12px;color:var(--text-dim)">/10</span>
+          </div>
+        </div>
+      </div>
+      <div class="thermo-card-body">
+        <div class="risk-detail">Network-layer attacks are fully mitigated. Attacker must either <strong style="color:var(--accent-yellow)">steal the private key</strong> from a trusted endpoint or <strong style="color:var(--accent-yellow)">compromise an authorized device</strong>. No passive capture possible. Attack surface shifts to physical access or endpoint malware.</div>
+        <span class="risk-tag rt-c3" style="margin-top:8px;display:inline-block">⏱ TIME TO ATTACK: Days–Weeks (if possible)</span>
+        <div class="bar-list">
+          <div class="bar-row">
+            <div class="bar-lbl"><span>Skill Required</span><span style="color:var(--col3)">High</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:85%;background:var(--col3)"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-lbl"><span>Tools Needed</span><span style="color:var(--col3)">Custom / Advanced</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:80%;background:rgba(67,170,139,0.7)"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-lbl"><span>Detection</span><span style="color:var(--accent-red)">High</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:80%;background:var(--accent-red)"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /thermo-grid -->
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MITRE + KILL CHAIN MAPPING
+══════════════════════════════════════════════════════════ -->
+<div class="mapping-section">
+  <div class="mapping-title-row">
+    <span style="font-size:24px">🎯</span>
+    <div>
+      <div class="mapping-title">Attack Mapping — MITRE ATT&amp;CK ICS &amp; Cyber Kill Chain</div>
+    </div>
+  </div>
+
+  <div class="mapping-grid">
+
+    <!-- MITRE TABLE -->
+    <div class="map-panel">
+      <div class="map-panel-hdr">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--accent-red);box-shadow:0 0 6px var(--accent-red);animation:pulseGlow 2s infinite"></div>
+        MITRE ATT&amp;CK ICS — Technique Mapping
+      </div>
+      <div class="map-panel-body">
+        <div class="mitre-row">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+              <span class="mitre-id">T0846</span>
+              <span class="mitre-name">Remote System Discovery</span>
+            </div>
+            <div class="mitre-sub">OPC-UA GetEndpoints + Browse enumerates all networked devices. Applies to all 3 modes but is trivial with No Auth.</div>
+            <div class="mitre-cols">
+              <span class="mc-badge mc-c1">NO AUTH</span>
+              <span class="mc-badge mc-c2">USER/PASS</span>
+            </div>
+          </div>
+        </div>
+        <div class="mitre-row">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+              <span class="mitre-id">T0830</span>
+              <span class="mitre-name">Man in the Middle</span>
+            </div>
+            <div class="mitre-sub">ARP spoofing + session hijack to intercept OPC-UA session credentials and session tokens in transit.</div>
+            <div class="mitre-cols">
+              <span class="mc-badge mc-c2">USER/PASS</span>
+            </div>
+          </div>
+        </div>
+        <div class="mitre-row">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+              <span class="mitre-id">T0884</span>
+              <span class="mitre-name">Connection Proxy</span>
+            </div>
+            <div class="mitre-sub">Attacker relays OPC-UA traffic through own host, capturing or modifying Write commands before forwarding.</div>
+            <div class="mitre-cols">
+              <span class="mc-badge mc-c1">NO AUTH</span>
+              <span class="mc-badge mc-c2">USER/PASS</span>
+            </div>
+          </div>
+        </div>
+        <div class="mitre-row">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+              <span class="mitre-id">T0836</span>
+              <span class="mitre-name">Modify Parameter</span>
+            </div>
+            <div class="mitre-sub">OPC-UA Write service used to alter PLC setpoints, valve positions, safety thresholds — direct process impact.</div>
+            <div class="mitre-cols">
+              <span class="mc-badge mc-c1">NO AUTH</span>
+              <span class="mc-badge mc-c2">USER/PASS</span>
+            </div>
+          </div>
+        </div>
+        <div class="mitre-row">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+              <span class="mitre-id">T0855</span>
+              <span class="mitre-name">Unauthorized Command Message</span>
+            </div>
+            <div class="mitre-sub">Sending OPC-UA Call/Write messages to devices without proper authorization. Core impact technique.</div>
+            <div class="mitre-cols">
+              <span class="mc-badge mc-c1">NO AUTH</span>
+              <span class="mc-badge mc-c2">USER/PASS</span>
+            </div>
+          </div>
+        </div>
+        <div class="mitre-row">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+              <span class="mitre-id">T0832</span>
+              <span class="mitre-name">Manipulation of View</span>
+            </div>
+            <div class="mitre-sub">Attacker reads and modifies sensor data subscriptions — can feed false process data to operators via OPC-UA Subscribe.</div>
+            <div class="mitre-cols">
+              <span class="mc-badge mc-c1">NO AUTH</span>
+              <span class="mc-badge mc-c2">USER/PASS</span>
+            </div>
+          </div>
+        </div>
+        <div class="mitre-row" style="border:none">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+              <span class="mitre-id">T0800</span>
+              <span class="mitre-name">Activate Firmware Update</span>
+            </div>
+            <div class="mitre-sub">Some OPC-UA implementations expose firmware update methods via the Call service — accessible without auth on misconfigured servers.</div>
+            <div class="mitre-cols">
+              <span class="mc-badge mc-c1">NO AUTH</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KILL CHAIN -->
+    <div class="map-panel">
+      <div class="map-panel-hdr">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--accent-orange);box-shadow:0 0 6px var(--accent-orange);animation:pulseGlow 2s infinite"></div>
+        ICS Cyber Kill Chain — OPC-UA Attack Path
+      </div>
+      <div class="map-panel-body">
+        <div class="kc-timeline">
+          <div class="kc-phase">
+            <div class="kc-circle kcp-recon">🔍</div>
+            <div class="kc-body">
+              <span class="kc-pname blue">Reconnaissance</span>
+              <div class="kc-pdesc">Network scan (Nmap/Shodan) discovers port 4840 open. OPC-UA fingerprinting via GetEndpoints reveals server product, version and security mode configuration.</div>
+              <div class="kc-cols">
+                <span class="mc-badge mc-c1">MODE 1</span><span class="mc-badge mc-c2">MODE 2</span><span class="mc-badge mc-c3">MODE 3</span>
+              </div>
+            </div>
+          </div>
+          <div class="kc-phase">
+            <div class="kc-circle kcp-weapon">⚙️</div>
+            <div class="kc-body">
+              <span class="kc-pname orange">Weaponization</span>
+              <div class="kc-pdesc"><strong>Mode 1:</strong> No weaponization needed — python-opcua / UA Expert is the weapon. <strong>Mode 2:</strong> Prepare arpspoof + Wireshark for credential capture. <strong>Mode 3:</strong> Requires private key extraction malware.</div>
+              <div class="kc-cols">
+                <span class="mc-badge mc-c1">NO PREP</span><span class="mc-badge mc-c2">ARP SPOOF</span>
+              </div>
+            </div>
+          </div>
+          <div class="kc-phase">
+            <div class="kc-circle kcp-deliver">📡</div>
+            <div class="kc-body">
+              <span class="kc-pname yellow">Delivery</span>
+              <div class="kc-pdesc">Attacker gains access to OT network (VLAN, VPN, compromised engineering workstation). Initiates connection to OPC-UA server on port 4840.</div>
+              <div class="kc-cols">
+                <span class="mc-badge mc-c1">MODE 1</span><span class="mc-badge mc-c2">MODE 2</span>
+              </div>
+            </div>
+          </div>
+          <div class="kc-phase">
+            <div class="kc-circle kcp-exploit">💥</div>
+            <div class="kc-body">
+              <span class="kc-pname red">Exploitation</span>
+              <div class="kc-pdesc"><strong>Mode 1:</strong> AnonymousIdentityToken accepted — session opened. <strong>Mode 2:</strong> ARP poison → session reset → ActivateSession captured with cleartext credentials → session replayed.</div>
+              <div class="kc-cols">
+                <span class="mc-badge mc-c1">INSTANT</span><span class="mc-badge mc-c2">MITM + CAPTURE</span>
+              </div>
+            </div>
+          </div>
+          <div class="kc-phase">
+            <div class="kc-circle kcp-install">🗺️</div>
+            <div class="kc-body">
+              <span class="kc-pname purple">Installation / Recon</span>
+              <div class="kc-pdesc">Browse service enumerates full OPC-UA address space — all PLCs, sensors, actuators, process variables and their node IDs mapped. Creates targeting list for impact actions.</div>
+              <div class="kc-cols">
+                <span class="mc-badge mc-c1">MODE 1</span><span class="mc-badge mc-c2">MODE 2</span>
+              </div>
+            </div>
+          </div>
+          <div class="kc-phase">
+            <div class="kc-circle kcp-c2">🎛️</div>
+            <div class="kc-body">
+              <span class="kc-pname red">Command &amp; Control</span>
+              <div class="kc-pdesc">Attacker establishes persistent OPC-UA subscription to monitor all process changes. Subscribe/Publish service provides real-time process telemetry without additional authentication.</div>
+              <div class="kc-cols">
+                <span class="mc-badge mc-c1">MODE 1</span><span class="mc-badge mc-c2">MODE 2</span>
+              </div>
+            </div>
+          </div>
+          <div class="kc-phase">
+            <div class="kc-circle kcp-action">⚡</div>
+            <div class="kc-body">
+              <span class="kc-pname red">Actions on Objective</span>
+              <div class="kc-pdesc">Write commands alter PLC setpoints (temperature, pressure, flow rate, valve open/close). Call service invokes device methods. Physical process impact achieved — <strong style="color:var(--col1)">potential for equipment damage, safety incident, or production loss.</strong></div>
+              <div class="kc-cols">
+                <span class="mc-badge mc-c1">MODE 1 — DIRECT</span><span class="mc-badge mc-c2">MODE 2 — POST-CRED</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /mapping-grid -->
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     FOOTER SUMMARY BAR
+══════════════════════════════════════════════════════════ -->
+<div style="border-top:2px solid var(--border);padding:14px 28px;background:rgba(0,0,0,0.4);display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+  <span style="font-family:var(--head);font-size:11px;font-weight:800;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase">Key Takeaway:</span>
+  <div style="flex:1;font-size:12.5px;color:var(--text);line-height:1.6">
+    OPC-UA security is <strong style="color:var(--text-bright)">opt-in</strong>. A server configured with <span style="color:var(--col1);font-weight:700">SecurityMode=None</span> gives any network-local attacker full industrial process control with zero effort. <span style="color:var(--col2);font-weight:700">Username/Password</span> adds a credential barrier that collapses under passive sniffing. Only <span style="color:var(--col3);font-weight:700">SignAndEncrypt + Certificate</span> eliminates network-layer attack vectors.
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <span style="background:rgba(230,57,70,0.2);border:1px solid rgba(230,57,70,0.5);color:var(--col1);padding:4px 12px;border-radius:5px;font-family:var(--head);font-size:11px;font-weight:700;letter-spacing:1px">🔓 MODE 1 → NEVER DEPLOY</span>
+    <span style="background:rgba(249,199,79,0.12);border:1px solid rgba(249,199,79,0.4);color:var(--col2);padding:4px 12px;border-radius:5px;font-family:var(--head);font-size:11px;font-weight:700;letter-spacing:1px">🔑 MODE 2 → LEGACY ONLY</span>
+    <span style="background:rgba(67,170,139,0.12);border:1px solid rgba(67,170,139,0.4);color:var(--col3);padding:4px 12px;border-radius:5px;font-family:var(--head);font-size:11px;font-weight:700;letter-spacing:1px">🛡️ MODE 3 → REQUIRED</span>
+  </div>
+</div>
+
+
+
+</body></html>
