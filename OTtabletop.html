@@ -1,4 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tabletop OT · Respuesta a Incidentes Industriales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e13;
+  --panel:#111820;
+  --panel-2:#161f29;
+  --line:#233241;
+  --text:#e7edf3;
+  --muted:#7d8fa0;
+  --cyan:#2dd4d4;
+  --amber:#ffb020;
+  --red:#ff4d5e;
+  --green:#33d17a;
+  --mono:'IBM Plex Mono', ui-monospace, monospace;
+  --sans:'IBM Plex Sans', system-ui, sans-serif;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:
+    radial-gradient(1200px 500px at 50% -10%, rgba(45,212,212,.06), transparent 60%),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  position:relative;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:1;
+  background:repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 4px);
+  opacity:.35;
+}
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(ellipse at 50% 30%, transparent 45%, rgba(0,0,0,.4) 145%);
+}
+::selection{background:var(--cyan);color:#00161a;}
+a{color:var(--cyan);}
 
+.wrap{max-width:880px;margin:0 auto;padding:32px 20px 120px;position:relative;z-index:2;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* ---------- HEADER / CLOCK ---------- */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(10,14,19,.9);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{
+  max-width:880px;margin:0 auto;padding:12px 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.brand{
+  font-family:var(--mono);font-size:13px;letter-spacing:.06em;
+  color:var(--muted);text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;
+}
+.brand .dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:dotPulse 1.5s ease-in-out infinite;}
+.hud{display:flex;align-items:center;gap:8px;}
+.clock{
+  font-family:var(--mono);font-size:14px;color:var(--amber);
+  border:1px solid var(--line);border-radius:6px;padding:4px 10px;
+  background:var(--panel);white-space:nowrap;transition:box-shadow .3s ease, color .3s ease;
+}
+.clock.tick{box-shadow:0 0 12px rgba(255,176,32,.5);color:#fff;}
+.impact-pill{
+  font-family:var(--mono);font-size:12px;color:var(--muted);
+  border:1px solid var(--line);border-radius:6px;padding:4px 10px;
+  background:var(--panel);white-space:nowrap;transition:all .3s ease;
+}
+.impact-pill.low{color:var(--green);border-color:rgba(51,209,122,.4);}
 .impact-pill.med{color:var(--amber);border-color:rgba(255,176,32,.4);}
 .impact-pill.high{color:var(--red);border-color:rgba(255,77,94,.4);}
 
@@ -255,7 +336,7 @@ footer{margin-top:60px;color:var(--muted);font-size:12px;font-family:var(--mono)
     <h2 style="margin-top:34px;">Contexto de la red</h2>
     <p>La arquitectura sigue el <strong>modelo de Purdue</strong>, a partir del nivel 4. Un firewall separa IT (nivel 4, <strong>VLAN4</strong>) del resto de la planta. Su interfaz 1 va hacia IT. Su interfaz 2 entrega la <strong>IDMZ</strong> (<strong>VLAN3</strong>, <code>192.168.3.0/24</code>), que cuelga de un switch propio de la IDMZ, donde están los jump servers, el servidor de respaldos de configuración y el IDS. Su interfaz 3 entrega la red <strong>Supervision</strong>, que llega a un switch capa 3 con dos VLAN: <strong>VLAN1 = Supervision</strong> (<code>192.168.1.0/24</code>) y <strong>VLAN0 = CN</strong> (<code>192.168.0.0/24</code>), donde están el DCS, el SCADA y los clientes de control. Supervision no tiene salida a Internet ni acceso directo desde IT: todo pasa por el firewall. IT tiene su propio firewall hacia Internet.</p>
     <p>En CN hay además un <strong>SIS (Sistema Instrumentado de Seguridad)</strong>, físicamente independiente del DCS: es la última barrera de protección del proceso, pensada para actuar aunque el DCS esté comprometido. No sustituye una buena respuesta a incidentes — solo reacciona cuando ya se cruzó un umbral físico peligroso —, pero es parte de la arquitectura real de una planta como esta.</p>
-    <p>Como visibilidad se cuenta con un <strong>IDS</strong> alimentado por puertos espejo del switch de Supervision y del switch de la IDMZ, y un <strong>SIEM</strong> que correlaciona ambos firewalls y el IDS.</p>
+    <p>Como visibilidad se cuenta con un <strong>IDS</strong> alimentado por puertos espejo(SpanPort) del switch de Supervision y del switch de la IDMZ, y un <strong>SIEM</strong> que correlaciona ambos firewalls y el IDS.</p>
     <p>Una cosa más: la IDMZ y el enlace Supervision–CN no solo transportan tráfico sospechoso. Por ahí pasa soporte remoto legítimo, replicación de historiador, visibilidad de SCADA y acceso de ingeniería a los PLCs. Contener no es gratis — cada acción que aísla algo también corta a alguien que lo estaba usando de forma legítima. Después de cada decisión vas a ver qué se rompió del lado operativo, no solo qué se contuvo del lado de seguridad.</p>
     <p>El ejercicio sigue las cuatro fases del ciclo completo: primero <strong>detectas</strong>, luego <strong>contienes</strong> para frenar el avance, después <strong>erradicas</strong> la amenaza del entorno —decidiendo qué tan a fondo lo haces— y finalmente <strong>recuperas</strong> la operación normal. El rastreador de arriba muestra en qué fase estás en todo momento.</p>
 
@@ -281,14 +362,14 @@ footer{margin-top:60px;color:var(--muted);font-size:12px;font-family:var(--mono)
           <div class="node ok" data-zone="dmz"><span class="led"></span>Switch IDMZ · VLAN3 <span class="subnet">192.168.3.0/24</span></div>
           <div class="node ok" data-zone="dmz"><span class="led"></span>Jump servers</div>
           <div class="node ok" data-zone="dmz"><span class="led"></span>Servidor de respaldos <span class="subnet">config. PLCs y switch L3</span></div>
-          <div class="node watch" data-zone="idsdmz"><span class="led" style="background:var(--cyan)"></span>IDS (espejo IDMZ)</div>
+          <div class="node watch" data-zone="idsdmz"><span class="led" style="background:var(--cyan)"></span>IDS (SpanPort IDMZ)</div>
         </div>
       </div>
       <div class="level">
         <div class="level-tag">NIVEL 3 · Supervision</div>
         <div class="level-body">
           <div class="node ok" data-zone="Supervision"><span class="led"></span>Switch L3 · VLAN1 = Supervision <span class="subnet">192.168.1.0/24</span></div>
-          <div class="node watch" data-zone="idsSupervision"><span class="led" style="background:var(--cyan)"></span>IDS (espejo Supervision)</div>
+          <div class="node watch" data-zone="idsSupervision"><span class="led" style="background:var(--cyan)"></span>IDS (SpanPort Supervision)</div>
         </div>
       </div>
       <div class="level">
@@ -310,7 +391,7 @@ footer{margin-top:60px;color:var(--muted);font-size:12px;font-family:var(--mono)
     <div class="facts">
       <div class="fact"><div class="k">Vector de infección</div><div class="v">Red de IT (nivel 4)</div></div>
       <div class="fact"><div class="k">Objetivo en riesgo</div><div class="v">DCS del horno · integridad física</div></div>
-      <div class="fact"><div class="k">Herramientas de detección</div><div class="v">IDS (espejo IDMZ y Supervision) + SIEM</div></div>
+      <div class="fact"><div class="k">Herramientas de detección</div><div class="v">IDS (Puerto SPANPORT IDMZ y Supervision) + SIEM</div></div>
       <div class="fact"><div class="k">Impacto si no se actúa</div><div class="v">Incremento de temperatura del horno con riesgo para el ingeniero en sitio</div></div>
     </div>
 
@@ -416,7 +497,7 @@ const NODES = {
     zoneState:{it:'alert',itfw:'ok',dmz:'alert'},
     text:[
       `El SIEM correlaciona eventos del firewall IT–IDMZ: múltiples intentos de autenticación fallidos contra un jump server de la IDMZ, originados desde un equipo de la red de IT.`,
-      `Minutos después, el IDS con espejo en el switch de la IDMZ reporta un patrón de escaneo de puertos hacia los jump servers.`
+      `Minutos después, el IDS recolecta información mediante un puerto SPANPORT del switch de la IDMZ reporta un patrón de escaneo de puertos hacia los jump servers.`
     ],
     options:[
       {letter:'A', label:'Bloquear de inmediato todo el tráfico IT→IDMZ en el firewall (interfaz 1↔2), sin esperar más análisis.', next:'n2a',
@@ -480,7 +561,7 @@ const NODES = {
     time:'08:34', stage:'Erradicación en IT / IDMZ', phase:'erradicacion',
     zoneState:{it:'bad',dmz:'alert',Supervision:'ok'},
     text:[
-      `Los logs confirman que el jump server fue tocado pero no hubo pivote exitoso hacia Supervision. El IDS con espejo en el switch Supervision no reporta tráfico anómalo. La amenaza está contenida — ahora hay que decidir qué tan a fondo se elimina del entorno antes de cerrar el incidente.`
+      `Los logs confirman que el jump server fue tocado pero no hubo pivote exitoso hacia Supervision. El IDS recolecta información mediante un puerto SPANPORT del switch Supervision el cual no reporta tráfico anómalo. La amenaza está contenida — ahora hay que decidir qué tan a fondo se elimina del entorno antes de cerrar el incidente.`
     ],
     options:[
       {letter:'A', label:'Reinstalación completa (imagen limpia) del equipo de IT origen y del jump server tocado, usando el servidor de respaldos de la IDMZ.', next:'END_E3',
