@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OT Incident Response - Advanced Tabletop Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&display=swap');
+        body { font-family: 'JetBrains Mono', monospace; background-color: #070b12; }
+        .glow-text { text-shadow: 0 0 10px rgba(0, 255, 204, 0.5); }
+        .glow-border:focus { box-shadow: 0 0 15px rgba(0, 255, 204, 0.3); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0b132b; }
+        ::-webkit-scrollbar-thumb { background: #1c2541; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00ffcc; }
+    </style>
+</head>
+<body class="text-gray-100 min-h-screen flex flex-col justify-between selection:bg-teal-500 selection:text-slate-900">
+
+    <div id="intro-screen" class="max-w-5xl mx-auto p-4 md:p-8 space-y-6 my-auto">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-6 md:p-8 shadow-2xl backdrop-blur-md">
+            <h1 class="text-3xl font-bold tracking-wider text-teal-400 glow-text flex items-center gap-3">
+                <span class="w-3 h-3 rounded-full bg-teal-400 animate-ping"></span>
+                OT-SIM: MANUAL DE ARQUITECTURA INDUSTRIAL
+            </h1>
+            <p class="text-xs text-slate-400 mt-2">Antes de iniciar el ejercicio, revise el entorno tecnológico y de red bajo su supervisión:</p>
+            
+            <hr class="border-slate-800 my-4">
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-slate-950 p-4 rounded-lg border border-slate-800">
+                    <span class="text-teal-400 font-bold text-xs block mb-2">🛡️ SEGMENTACIÓN EN FIREWALL HA</span>
+                    <ul class="text-xs space-y-2 text-slate-300">
+                        <li><b class="text-amber-400">Untrust (IT):</b> 192.168.4.0/24</li>
+                        <li><b class="text-amber-400">IDMZ (Servicios):</b> 192.168.2.0/24</li>
+                        <li><b class="text-amber-400">PCN (Supervisión):</b> 192.168.1.0/24 (VLAN 1)</li>
+                        <li><b class="text-amber-400">CN (Control):</b> 192.168.0.0/24 (VLAN 0)</li>
+                    </ul>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-lg border border-slate-800">
+                    <span class="text-teal-400 font-bold text-xs block mb-2">🔀 NÚCLEO DE CONECTIVIDAD OT</span>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        El <b>Switch Core PCN es Capa 3</b>. Esto significa que el tráfico entre la <b>VLAN 1</b> y la <b>VLAN 0 (CN)</b> se enruta directamente de manera abierta, <b>sin pasar por el Firewall de Convergencia</b>.
+                    </p>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-lg border border-slate-800">
+                    <span class="text-teal-400 font-bold text-xs block mb-2">👁️ VISIBILIDAD DE SEGURIDAD (SIEM)</span>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Su <b>SIEM</b> centraliza los registros del Firewall HA y las alertas de <b>Claroty</b>. Claroty captura tráfico de forma pasiva únicamente en los puertos espejo (SPAN) del Switch Core y de la IDMZ.
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-4 p-4 bg-red-950/20 border border-red-900/30 rounded-lg text-xs text-slate-300">
+                ⚠️ <b class="text-red-400">NOTA OPERATIVA CRÍTICA:</b> Todos los servidores de planta (Jump Servers, SCADA, HMI, EWS) corren sobre sistemas operativos <b>Windows</b>. Las comunicaciones finales de campo utilizan el protocolo industrial **Modbus TCP (Puerto 502)** sin cifrado.
+            </div>
+
+            <div class="mt-6 text-center">
+                <button onclick="startGame()" class="px-8 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-slate-950 font-bold rounded-lg tracking-widest uppercase shadow-lg text-sm transition-all">
+                    Entendido ➔ Iniciar Simulación de Crisis
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-screen" class="hidden w-full max-w-6xl mx-auto p-4 flex-grow flex flex-col justify-between gap-4">
+        
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-6 w-full md:w-auto">
+                <div>
+                    <span class="text-[10px] text-slate-500 block uppercase font-bold tracking-wider">Tiempo Restante de la Planta</span>
+                    <div class="text-xl font-bold text-red-400 font-mono" id="global-timer">500s</div>
+                </div>
+                <div class="flex-grow md:w-32">
+                    <span class="text-[10px] text-slate-500 block uppercase font-bold tracking-wider">Tiempo de Reacción por Paso</span>
+                    <div class="w-full bg-slate-950 h-2 rounded overflow-hidden mt-1 border border-slate-800">
+                        <div id="step-timer-bar" class="bg-teal-400 h-full transition-all duration-1000" style="width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-[11px]">
+                <span id="step-1-badge" class="px-2 py-0.5 rounded font-bold">FASE 1: IT/IDMZ</span>
+                <span class="text-slate-600">➔</span>
+                <span id="step-2-badge" class="px-2 py-0.5 rounded font-bold">FASE 2: PCN</span>
+                <span class="text-slate-600">➔</span>
+                <span id="step-3-badge" class="px-2 py-0.5 rounded font-bold">FASE 3: CN</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-grow items-stretch">
+            
+            <div class="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-xl p-6 flex flex-col justify-between shadow-xl">
+                <div>
+                    <div class="flex justify-between items-center border-b border-slate-800/50 pb-2 mb-4">
+                        <span id="node-zone" class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 bg-slate-950 border border-slate-800 rounded"></span>
+                        <span id="node-id" class="text-xs text-slate-500 font-mono"></span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h2 id="node-title" class="text-lg md:text-xl font-bold text-white"></h2>
+                        <p id="node-desc" class="text-slate-300 text-xs md:text-sm leading-relaxed border-l-2 border-teal-500 pl-3 py-0.5"></p>
+                    </div>
+
+                    <div class="mt-4 border border-slate-800 rounded-lg overflow-hidden bg-slate-950">
+                        <button onclick="toggleLogs()" class="w-full bg-slate-900 px-4 py-2 text-left text-xs font-bold text-slate-400 hover:bg-slate-800 flex justify-between items-center">
+                            <span>📁 CONSOLE: LOGS CRUDOS DEL SISTEMA (SIEM INBOUND)</span>
+                            <span id="logs-toggle-icon">▼</span>
+                        </button>
+                        <div id="logs-content" class="p-3 font-mono text-[11px] text-emerald-400 whitespace-pre-wrap leading-tight hidden max-h-36 overflow-y-auto bg-slate-950"></div>
+                    </div>
+                </div>
+
+                <div id="interaction-area" class="mt-6 space-y-2.5"></div>
+            </div>
+
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-xl">
+                <div class="space-y-4">
+                    <h3 class="text-xs font-bold text-teal-400 tracking-wider uppercase border-b border-slate-800 pb-2">🚨 Silos de Respuesta e Inteligencia</h3>
+                    <p class="text-[11px] text-slate-400 leading-snug">Cada llamada a un especialista consume tiempo global (-15 segundos), pero le otorgará pistas críticas para deducir el incidente correctamente.</p>
+                    
+                    <div class="space-y-2">
+                        <button onclick="askSpecialist('network')" id="btn-network" class="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs p-3 rounded-lg flex items-center justify-between group">
+                            <div>
+                                <span class="font-bold text-slate-200 block group-hover:text-teal-400">📞 Network Security Team</span>
+                                <span class="text-[10px] text-slate-500">Analiza enrutamiento, firewalls y puertos.</span>
+                            </div>
+                            <span class="text-[10px] bg-red-950/40 text-red-400 px-1.5 py-0.5 rounded font-mono border border-red-900/30">-15s</span>
+                        </button>
+
+                        <button onclick="askSpecialist('endpoint')" id="btn-endpoint" class="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs p-3 rounded-lg flex items-center justify-between group">
+                            <div>
+                                <span class="font-bold text-slate-200 block group-hover:text-teal-400">📞 Endpoint Security Team</span>
+                                <span class="text-[10px] text-slate-500">Analiza sistemas Windows de planta.</span>
+                            </div>
+                            <span class="text-[10px] bg-red-950/40 text-red-400 px-1.5 py-0.5 rounded font-mono border border-red-900/30">-15s</span>
+                        </button>
+
+                        <button onclick="askSpecialist('planta')" id="btn-planta" class="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs p-3 rounded-lg flex items-center justify-between group">
+                            <div>
+                                <span class="font-bold text-slate-200 block group-hover:text-teal-400">📞 Responsable de Planta</span>
+                                <span class="text-[10px] text-slate-500">Analiza el estado e impacto de la maquinaria física.</span>
+                            </div>
+                            <span class="text-[10px] bg-red-950/40 text-red-400 px-1.5 py-0.5 rounded font-mono border border-red-900/30">-15s</span>
+                        </button>
+                    </div>
+
+                    <div id="help-box" class="p-3 bg-teal-950/20 border border-teal-900/30 rounded-lg hidden">
+                        <span class="text-[10px] font-bold text-teal-400 font-mono uppercase block" id="help-box-title"></span>
+                        <p class="text-xs text-slate-300 mt-1 leading-normal" id="help-box-text"></p>
+                    </div>
+                </div>
+
+                <button onclick="getLogHint()" class="w-full py-2 bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 hover:border-teal-500/30 text-xs rounded-lg font-bold transition-all mt-4 flex items-center justify-center gap-2">
+                    💡 Analizar Logs Crudos (Pista del Evento Actual)
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+
+    <footer class="border-t border-slate-900 bg-slate-950/80 p-3 text-center text-[10px] text-slate-600 font-mono">
+        Tabletop Avanzado OT • Resiliencia ante Ataques Basados en Windows y Manipulación Modbus TCP • 2026
+    </footer>
+
+    <script>
+        const nodes = {
+            // ================= FASE 1: IT / IDMZ =================
+            "P1": {
+                title: "Acceso Inicial Detectado en la IDMZ",
+                zone: "Capa 4 / IT untrust ➔ IDMZ",
+                phase: 1,
+                desc: "Un analista del SOC nota una alerta en el SIEM. La cuenta legítima 'Proveedor_Eng_02' completó una sesión VPN e inició una conexión RDP remota hacia el Jump Server basado en Windows en el segmento IDMZ. El operador de campo afirma que no hay mantenimientos programados hoy.",
+                logs: '{\n  "timestamp": "2026-07-09T19:40:12Z",\n  "source_ip": "192.168.4.52",\n  "dest_ip": "192.168.2.10",\n  "event": "Firewall_HA_Permit",\n  "rule": "IT-to-IDMZ-RDP",\n  "service": "RDP (TCP 3389)",\n  "user": "Proveedor_Eng_02",\n  "note": "SIEM Correlated: 5 previous authentication failures from external geos recorded within 10 minutes."\n}',
+                hint: "El atacante ha ganado acceso inicial usando credenciales válidas exfiltradas. Al usar un protocolo legítimo (RDP), no disparará firmas tradicionales de malware, pero la actividad de red previa delata un compromiso de cuenta.",
+                hints: {
+                    network: "Network Security: 'El tráfico cruza el Firewall HA correctamente hacia la IP de la IDMZ mediante la regla permitida. Sin embargo, no podemos ver qué comandos ejecuta dentro del flujo RDP cifrado.'",
+                    endpoint: "Endpoint Security: 'El servidor 192.168.2.10 registra un inicio de sesión exitoso de Windows (Event ID 4624) de tipo interactivo de red. El usuario ya está dentro de la consola.'",
+                    planta: "Responsable de Planta: 'No tenemos ningún contratista autorizado en este turno. Si es un ciberataque, necesitamos contenerlo antes de que baje a la red de procesos.'"
+                },
+                options: [
+                    { text: "Aislar de inmediato el Jump Server en la IDMZ a nivel de switch y forzar el cierre de todas las sesiones RDP locales.", next: "VIC_EARLY" },
+                    { text: "Confiar en las capacidades de inspección de estado del Firewall de convergencia y mantener la sesión bajo observación pasiva.", next: "S1A" },
+                    { text: "Ejecutar un bloqueo inmediato del usuario en el Active Directory Corporativo localizado en el segmento de IT.", next: "S1B" }
+                ]
+            },
+            "S1A": {
+                title: "Bypass de IDMZ y Descubrimiento Local",
+                zone: "IDMZ (192.168.2.0/24)",
+                phase: 1,
+                desc: "La inacción permitió que el atacante utilizara el Jump Server Windows como cabeza de playa. Ha comenzado a ejecutar tácticas de Descubrimiento (Discovery) mediante utilidades nativas de administración del sistema (LolBins) para mapear los servidores de control.",
+                logs: 'Windows Event Logs (192.168.2.10):\nEventID: 4688 - New Process Created\nCmdLine: powershell.exe -ExecutionPolicy Bypass -Command "Get-NetIPAddress; net view /domain"\nTarget: Active Reconnaissance on internal plant segments.',
+                hint: "El atacante está abusando de comandos legítimos de administración (Living off the Land). Esto le permite identificar los servidores Windows de supervisión (SCADA/HMI) en la PCN sin generar ruido en herramientas pasivas.",
+                hints: {
+                    network: "Network Security: 'Vemos un incremento brusco de consultas RPC hacia los servidores del segmento PCN (192.168.1.0/24) originadas desde el Jump Server.'",
+                    endpoint: "Endpoint Security: 'El atacante está usando scripts para evadir la política de ejecución local. El servidor Windows no cuenta con el agente EDR configurado en modo restrictivo.'",
+                    planta: "Responsable de Planta: 'Las interfaces de operación todavía responden bien, pero si el intruso descubre la ruta a los servidores SCADA, perderemos el control.'"
+                },
+                options: [
+                    { text: "Desplegar de emergencia una directiva restrictiva en el Endpoint / Jump Server para bloquear la ejecución de scripts.", next: "P2" },
+                    { text: "Reiniciar de emergencia el Firewall de convergencia para limpiar las tablas de estado y bloquear permanentemente la IDMZ.", next: "GO_IMPACTS_NO_CONT" },
+                    { text: "Asumir que se trata de un escaneo automático residual de las herramientas de mantenimiento y esperar reporte formal.", next: "GO_RANSOM" }
+                ]
+            },
+            "S1B": {
+                title: "La Sesión Huérfana de Windows",
+                zone: "IDMZ - Red de Servidores",
+                phase: 1,
+                desc: "La trampa de IT funcionó a medias: bloquear el usuario en el AD centralizado evita nuevos accesos, pero la sesión RDP que ya estaba establecida de forma local dentro del servidor Windows de la IDMZ sigue abierta y completamente operativa. El atacante inicia el movimiento lateral hacia la PCN.",
+                logs: '{\n  "source": "Claroty_Passive_Sensor",\n  "alert": "Anomalous Lateral Movement",\n  "details": "Active SMB/RPC Session detected from IDMZ (192.168.2.10) to SCADA_Server (192.168.1.15) over port 445.",\n  "status": "Firewall permitted based on historical Engineering access rules."\n}',
+                hint: "En infraestructuras Windows, cortar la cuenta de red en el AD no destruye los tokens de sesión de los procesos RDP locales ya interactuando en memoria. El atacante saltó al SCADA.",
+                hints: {
+                    network: "Network Security: 'El tráfico de la IDMZ a la PCN está permitido por los puertos legados de compartición de archivos (TCP 445). El atacante ya se movió de segmento.'",
+                    endpoint: "Endpoint Security: 'Confirmado. El atacante utilizó pass-the-hash o credenciales cacheadas localmente para brincar del Jump Server al servidor SCADA en la VLAN 1.'",
+                    planta: "Responsable de Planta: 'Los operadores ven ruidos en la interfaz SCADA. Algo se está conectando de manera paralela a la consola principal de la planta.'"
+                },
+                options: [
+                    { text: "Deshabilitar inmediatamente los puertos de red asignados al Jump Server en el Switch físico de la IDMZ.", next: "P2" },
+                    { text: "Generar un ticket prioritario para que el área de soporte de IT analice la sesión interactiva del servidor.", next: "GO_RANSOM" },
+                    { text: "Ejecutar un escaneo intrusivo de vulnerabilidades desde IT hacia el segmento de control para forzar la desconexión.", next: "GO_IMPACTS_NO_CONT" }
+                ]
+            },
+
+            // ================= FASE 2: RED PCN =================
+            "P2": {
+                title: "Movimiento Lateral Ciego en la PCN",
+                zone: "Red PCN - VLAN 1 ➔ VLAN 0",
+                phase: 2,
+                desc: "El atacante se ha posicionado en el Servidor SCADA Windows (192.168.1.15). Desde ahí, ejecuta un movimiento lateral directo hacia la Estación de Ingeniería (EWS: 192.168.0.5) en la VLAN 0 (Red CN). El Firewall de convergencia reporta 0 logs de este salto. Claroty, sin embargo, genera una alerta crítica.",
+                logs: '🚨 [CLAROTY ALERT - CRITICAL - MULTI-VLAN-BYPASS]\nEvent: Unapproved Remote Administration Connection\nSource: 192.168.1.15 (VLAN 1 - PCN)\nDestination: 192.168.0.5 (VLAN 0 - CN)\nProtocol: WinRM / WMI (TCP 5985)\nReason: Traffic routed at Layer 3 Core Switch without passing through HA Firewall.',
+                hint: "El diseño de la red posee una debilidad: el Switch Core es Capa 3 e interconecta de forma abierta las VLANs de planta. Buscar logs en el firewall no servirá de nada. Debe aislar el tráfico en los switches.",
+                hints: {
+                    network: "Network Security: 'Revisamos el Firewall HA y no vemos ningún log de conexión entre la .1.15 y la .0.5. El tráfico fue ruteado de forma local por el Switch Core Capa 3.'",
+                    endpoint: "Endpoint Security: 'La EWS de Windows en la VLAN 0 acaba de recibir una ejecución remota. El atacante tiene ahora control sobre la herramienta que programa los PLCs.'",
+                    planta: "Responsable de Planta: '¡La EWS tiene acceso directo a los controladores de proceso Modbus! Si modifican la lógica de los lazos de control, detendrán físicamente la planta de gas.'"
+                },
+                options: [
+                    { text: "Ingresar al Switch Core Capa 3 y deshabilitar administrativamente (shutdown) los puertos físicos o la MAC de la EWS (192.168.0.5).", next: "P3" },
+                    { text: "Concentrar al equipo en auditar minuciosamente las reglas del Firewall HA para encontrar por qué no está bloqueando el tráfico inter-VLAN.", next: "S2A" },
+                    { text: "Lanzar comandos de rastreo y un escaneo forzado con Nmap desde un segmento externo para intentar aturdir las conexiones del atacante.", next: "S2B" }
+                ]
+            },
+            "S2A": {
+                title: "Pérdida de Tiempo por Auditoría Errada",
+                zone: "Red PCN - Línea de Supervisión",
+                phase: 2,
+                desc: "Perdiste tiempo crítico auditando el Firewall. El enrutamiento plano de Capa 3 en el switch puenteó la seguridad. El atacante, desde la EWS, ha comenzado a emitir ráfagas de comandos maliciosos hacia los PLCs de control. Las pantallas de operaciónSCADA empiezan a parpadear.",
+                logs: '🚨 [SIEM ALARM - TELEMETRY OUT OF BOUNDS]\nSource: Claroty Pasive Sensor\nTraffic: Heavy Modbus TCP traffic bursting to PLC_Compresor (192.168.0.101:502).\nCommand: Function Code 06 (Write Single Register) detected continuously.\nStatus: SCADA HMIs dropping packets due to connection exhaustion.',
+                hint: "El atacante está inyectando comandos industriales Modbus TCP directo a la red CN. Al mismo tiempo, satura los canales de comunicación para cegar a los operadores de planta.",
+                hints: {
+                    network: "Network Security: 'No hay rastro en el Firewall. La ráfaga ocurre puramente abajo en el switch de distribución de la VLAN 0.'",
+                    endpoint: "Endpoint Security: 'La EWS de Windows está corriendo un script automatizado que escupe comandos Modbus secuenciales en ráfaga.'",
+                    planta: "Responsable de Planta: 'Las pantallas de los operadores se congelaron. No sabemos qué valores tienen las líneas de gas en este instante. ¡Perdimos la telemetría!'"
+                },
+                options: [
+                    { text: "Dirigirse al rack físico de distribución y desconectar manualmente el enlace de red directo de la EWS.", next: "P3" },
+                    { text: "Implementar un bloqueo global del puerto Modbus (TCP 502) en el Firewall perimetral corporativo para frenar el ataque.", next: "GO_IMPACTS_NO_CONT" },
+                    { text: "Aislar pasivamente el tráfico con Claroty y esperar a ver si los mecanismos internos automáticos del PLC rechazan la escritura.", next: "GO_RANSOM" }
+                ]
+            },
+            "S2B": {
+                title: "Guerra de Escaneos y Caída de Dispositivos Legacy",
+                zone: "PCN - Infraestructura de Planta",
+                phase: 2,
+                desc: "El escaneo agresivo con Nmap saturó el ancho de banda y desbordó los búferes de memoria de los switches de acceso y PLCs heredados (Legacy). Los operadores pierden comunicación con los lazos de campo. Los sistemas Windows se muestran inestables, pero la sesión de ataque sigue activa.",
+                logs: 'DCS System Event:\n[ERROR] Communication Lost with Remote I/O Modules.\n[CRITICAL] Industrial Switches reporting high CPU utilization due to ARP/ICMP flooding.\nControl network latency exceeded safety thresholds ( > 500ms ).',
+                hint: "Las herramientas de escaneo tradicionales de IT (como Nmap) suelen colapsar las frágiles pilas de red de los dispositivos industriales antiguos. Provocaste una denegación de servicio interna.",
+                hints: {
+                    network: "Network Security: 'Nmap inundó los switches legacy. Toda la red de la planta está bloqueada por colisión de paquetes.'",
+                    endpoint: "Endpoint Security: 'Los servidores Windows SCADA están perdiendo sincronía y tirando excepciones de red por tiempo de espera agotado.'",
+                    planta: "Responsable de Planta: '¡Esto es un desastre! Estamos completamente a ciegas y los compresores siguen zumbando. Necesitamos cortar la energía o la red general ya.'"
+                },
+                options: [
+                    { text: "Efectuar un Shutdown de emergencia controlado en el switch principal de la PCN para aislar totalmente el segmento de control.", next: "VIC_PARTOUT" },
+                    { text: "Configurar filtros avanzados en la interfaz de Claroty para intentar mitigar los paquetes de escaneo de red.", next: "GO_IMPACTS_NO_CONT" },
+                    { text: "Esperar a que termine el ciclo del comando Nmap y confiar en que el tráfico vuelva a la normalidad por sí solo.", next: "GO_RANSOM" }
+                ]
+            },
+
+            // ================= FASE 3: RED CN =================
+            "P3": {
+                title: "Sabotaje Crítico y Peligro Físico",
+                zone: "CN - Red de Campo / VLAN 0",
+                phase: 3,
+                desc: "El atacante ha logrado sobreescribir con éxito los registros de control (Setpoints) en el PLC del Compresor de Gas Principal (`192.168.0.101`). Las válvulas automáticas de desahogo han sido forzadas a cerrarse y la presión mecánica en las tuberías escala de forma vertical. Las pantallas SCADA están congeladas por el ataque.",
+                logs: '🚨 [CLAROTY EXPLOIT ALERT - CRITICAL]\nDevice: PLC_Compresor_01 (192.168.0.101)\nActivity: Registry 40002 (Pressure Setpoint) modified from 120 PSI to 850 PSI.\nTelemetry Warning: Physical limit threshold breached. Mechanical failure hazard imminent.',
+                hint: "Cuando un atacante ya controla los registros Modbus a nivel físico en la red de campo, cualquier intento de contención basado exclusivamente en software (red o Windows) empeorará el escenario o llegará tarde. Se requiere acción física.",
+                hints: {
+                    network: "Network Security: 'Ya no hay comandos que filtrar. Los paquetes Modbus maliciosos ya fueron procesados y guardados en la memoria del PLC.'",
+                    endpoint: "Endpoint Security: 'Intentar tirar un script o parchar la EWS ahora tardará minutos debido al reinicio de los servicios de Windows. No hay tiempo.'",
+                    planta: "Responsable de Planta: '¡La presión en las líneas de gas superó la tolerancia física! Si el compresor no se detiene de inmediato, sufriremos una ruptura mecánica mayor o una explosión general de la línea.'"
+                },
+                options: [
+                    { text: "Presionar de inmediato el Botón Físico de Parada de Emergencia (Hongo ESD) en la consola central de control.", next: "VIC_PARTOUT" },
+                    { text: "Enviar con urgencia a un operador de campo hacia el gabinete para cerrar las válvulas de gas de alimentación de forma manual.", next: "S3A" },
+                    { text: "Inyectar comandos Modbus inversos desde otra terminal para tratar de contrarrestar el setpoint del atacante en el PLC.", next: "GO_IMPACTS_NO_CONT" }
+                ]
+            },
+            "S3A": {
+                title: "Riesgo de Operación en Campo",
+                zone: "CN - Patio de Compresores",
+                phase: 3,
+                desc: "El operador llega al patio de válvulas, pero las alarmas acústicas de sobrepresión física se encuentran activas. Los compresores vibran violentamente debido a la carga forzada por el script del atacante. Operar mecánicamente los componentes en este estado implica un riesgo severo para la vida humana.",
+                logs: 'Planta Sensor Telemetry:\n[CRITICAL] Line Pressure: 780 PSI (Safety Max: 450 PSI)\n[WARNING] Structural Vibration detected on Compression Skids.\n[DANGER] Hazardous area entry restricted due to structural failure risk.',
+                hint: "El proceso industrial ha entrado en una fase inestable crítica. La prioridad número uno en entornos OT bajo la metodología safety siempre debe ser resguardar las vidas humanas frente a los activos mecánicos.",
+                hints: {
+                    network: "Network Security: 'La red local está saturada, no podemos enviar comandos de desconexión remota a los actuadores.'",
+                    endpoint: "Endpoint Security: 'Los sistemas siguen enviando la instrucción de cierre desde la memoria corrupta de la EWS.'",
+                    planta: "Responsable de Planta: '¡El patio es una zona de peligro mortal en este segundo! Si la tubería estalla con el operador ahí, será fatal. ¡Debemos evacuar!'"
+                },
+                options: [
+                    { text: "Priorizar la vida humana: Ordenar la evacuación inmediata de todo el patio de procesos y activar sirenas de evacuación.", next: "VIC_PARTOUT_HUMAN" },
+                    { text: "Ordenar al operador que abra el gabinete eléctrico en campo a la fuerza para tumbar los interruptores principales del PLC.", next: "GO_IMPACTS_NO_CONT" },
+                    { text: "Instruir al operador que espere resguardado en sitio mientras se intentan descargar los planos lógicos en las oficinas de ingeniería.", next: "GO_RANSOM" }
+                ]
+            },
+
+            // ================= RESULTADOS FINALES =================
+            "VIC_EARLY": {
+                type: "end_card",
+                statusClass: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+                title: "🏆 AMENAZA CONTENIDA (MÍNIMO IMPACTO OPERATIVO)",
+                desc: "¡Excelente agilidad y razonamiento! El equipo identificó correctamente que el bloqueo en el Active Directory corporativo de IT era insuficiente contra sesiones de Windows persistentes en memoria. Al aislar localmente el Jump Server en la IDMZ y liquidar los procesos de red activos, neutralizaron al atacante en las capas superiores. La planta y las redes PCN/CN se mantuvieron intactas.",
+                compromise: "Mínimo (Contenido en Capa DMZ - Proceso al 100%)"
+            },
+            "VIC_PARTOUT": {
+                type: "end_card",
+                statusClass: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                title: "⚠️ CONTENIDO CON IMPACTOS IMPORTANTES (PARO DE PLANTA)",
+                desc: "Se logró la contención física y ciber-física de la crisis salvaguardando la infraestructura de la estación de gas. Sin embargo, recurrir a respuestas drásticas tardías (como apagar switches core o presionar el Hongo de Parada de Emergencia ESD) causó un paro total de producción no programado. Los lazos de control entraron en modo seguro. El restablecimiento tomará días, generando altas pérdidas financieras.",
+                compromise: "Medio-Alto (Llegó a Capa 1 - Paro de Planta Seguro)"
+            },
+            "VIC_PARTOUT_HUMAN": {
+                type: "end_card",
+                statusClass: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                title: "⚠️ CONTENIDO CON DAÑOS MATERIALES (VIDAS A SALVO)",
+                desc: "Reacción tardía en el plano digital, lo que otorgó tiempo al atacante para alterar mecánicamente las presiones via Modbus TCP. A pesar de la pérdida inminente de los equipos de compresión por sobreesfuerzo estructural, el equipo azul priorizó el pilar principal de OT: la Seguridad Humana (Safety). La evacuación total evitó fatalidades. Los activos físicos sufrieron daños severos, pero el personal está a salvo.",
+                compromise: "Crítico en Activos (Capa 0 Afectada - Cero Fatalidades)"
+            },
+            "GO_IMPACTS_NO_CONT": {
+                type: "end_card",
+                statusClass: "bg-red-500/10 text-red-400 border-red-500/20",
+                title: "❌ IMPACTOS NEGATIVOS SEVEROS SIN CONTENCIÓN",
+                desc: "Fracaso en la gestión de crisis industrial. Tratar de mitigar el ataque aplicando herramientas e ideas tradicionales de IT (como lanzar Nmap ruidoso sobre redes legacy, inyectar contra-comandos Modbus en caliente o aplicar parches de software a servidores intermedios en plena crisis) desestabilizó fatalmente las comunicaciones de planta. Se provocaron fallas mecánicas descontroladas y el atacante retuvo los accesos en todo momento.",
+                compromise: "Crítico y Fuera de Control (Daños de Infraestructura)"
+            },
+            "GO_RANSOM": {
+                type: "end_card",
+                statusClass: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+                title: "💀 NO CONTENIDO: SECUESTRO TOTAL DE OPERACIONES",
+                desc: "Fallo catastrófico inducido por la burocracia y la inacción ante las alertas tempranas del SIEM y Claroty. Centrarse en auditar logs del firewall perimetral mientras el Switch Core Capa 3 ruteaba en plano le otorgó minutos de oro al atacante. Toda la infraestructura Windows (EWS, SCADA, HMI) fue cifrada de extremo a extremo, los PLCs fueron bloqueados en estados inestables y se recibió una nota de rescate por el control de la planta.",
+                compromise: "Total (Pérdida Completa de la Propiedad Industrial)"
+            }
+        };
+
+        let currentId = "P1";
+        let globalTime = 500;
+        let stepTime = 45;
+        let globalInterval = null;
+        let stepInterval = null;
+        let gameActive = false;
+
+        function startGame() {
+            document.getElementById("intro-screen").classList.add("hidden");
+            document.getElementById("game-screen").classList.remove("hidden");
+            gameActive = true;
+            
+            // Iniciar Temporizador Global
+            globalInterval = setInterval(() => {
+                if (!gameActive) return;
+                globalTime--;
+                document.getElementById("global-timer").innerText = `${globalTime}s`;
+                
+                if (globalTime <= 0) {
+                    endGameByTimeout();
+                }
+            }, 1000);
+
+            renderNode("P1");
+        }
+
+        function startStepTimer() {
+            clearInterval(stepInterval);
+            stepTime = 45;
+            const bar = document.getElementById("step-timer-bar");
+            bar.style.width = "100%";
+            bar.className = "bg-teal-400 h-full transition-all duration-1000";
+
+            stepInterval = setInterval(() => {
+                if (!gameActive) return;
+                stepTime--;
+                let percentage = (stepTime / 45) * 100;
+                bar.style.width = `${percentage}%`;
+
+                if (stepTime <= 15) {
+                    bar.className = "bg-red-500 h-full transition-all duration-1000";
+                }
+
+                if (stepTime <= 0) {
+                    clearInterval(stepInterval);
+                    // Penalización por tiempo agotado en el paso: Descuenta del global y avanza con daño
+                    penalizeStepTimeout();
+                }
+            }, 1000);
+        }
+
+        function renderNode(nodeId) {
+            currentId = nodeId;
+            const node = nodes[nodeId];
+            
+            // Limpiar cuadro de ayuda de especialistas
+            document.getElementById("help-box").classList.add("hidden");
+
+            // Elementos de Identificación
+            document.getElementById("node-id").innerText = node.type === "end_card" ? "REPORTE TÁCTICO" : `ID: ${nodeId}`;
+            const zoneBadge = document.getElementById("node-zone");
+            zoneBadge.innerText = node.zone || "CONCLUSIÓN";
+            
+            if (node.type === "end_card") {
+                gameActive = false;
+                clearInterval(globalInterval);
+                clearInterval(stepInterval);
+                zoneBadge.className = `text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${node.statusClass}`;
+                disableHelpButtons();
+            } else {
+                zoneBadge.className = "text-xs font-bold uppercase tracking-wider px-2 py-0.5 bg-slate-950 border border-slate-800 rounded text-amber-400";
+                startStepTimer();
+            }
+
+            updateProgressBar(node.phase || null);
+
+            // Cargar Logs Crudos en el contenedor
+            const logBox = document.getElementById("logs-content");
+            logBox.innerText = node.logs || "// No se registran logs de red entrantes para este estado.";
+            
+            // Mantener logs ocultos por defecto al cambiar de nodo
+            logBox.classList.add("hidden");
+            document.getElementById("logs-toggle-icon").innerText = "▼";
+
+            const interactionArea = document.getElementById("interaction-area");
+            interactionArea.innerHTML = "";
+
+            if (node.type !== "end_card") {
+                document.getElementById("node-title").innerText = node.title;
+                document.getElementById("node-desc").innerText = node.desc;
+
+                node.options.forEach((opt, index) => {
+                    const btn = document.createElement("button");
+                    btn.className = "w-full text-left bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-teal-500/40 p-3 rounded-lg transition-all duration-150 group flex items-start gap-3 focus:outline-none glow-border";
+                    btn.innerHTML = `
+                        <span class="bg-slate-900 border border-slate-700 text-slate-400 font-bold px-1.5 py-0.5 rounded text-[10px] group-hover:text-teal-400 font-mono">
+                            ${String.fromCharCode(65 + index)}
+                        </span>
+                        <span class="text-xs md:text-sm font-medium text-slate-300 group-hover:text-white leading-snug">${opt.text}</span>
+                    `;
+                    btn.onclick = () => renderNode(opt.next);
+                    interactionArea.appendChild(btn);
+                });
+            } else {
+                // Pantalla de Estado de Cierre Final
+                document.getElementById("node-title").innerText = node.title;
+                document.getElementById("node-desc").innerText = node.desc;
+                document.getElementById("node-desc").className = "text-slate-300 text-xs md:text-sm leading-relaxed border-l-2 border-slate-500 pl-3 py-1 bg-slate-950/20 rounded-r-lg";
+
+                const endDiv = document.createElement("div");
+                endDiv.className = "p-4 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono space-y-2";
+                endDiv.innerHTML = `
+                    <p class="text-slate-400"><span class="text-teal-400">📊 VEREDICTO DE LA PLANTA:</span> ${node.compromise}</p>
+                    <p class="text-slate-500 text-[11px]">Simulación finalizada. Analice con los equipos corporativos de IT y los ingenieros de planta (OT) las brechas detectadas en la toma de decisiones y el impacto del tiempo.</p>
+                `;
+                interactionArea.appendChild(endDiv);
+
+                const resetBtn = document.createElement("button");
+                resetBtn.className = "w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-slate-950 font-bold p-3 rounded-lg text-xs uppercase tracking-wider font-bold mt-2";
+                resetBtn.innerText = "Reiniciar Todo el Ejercicio";
+                resetBtn.onclick = () => location.reload();
+                interactionArea.appendChild(resetBtn);
+            }
+        }
+
+        function toggleLogs() {
+            const logBox = document.getElementById("logs-content");
+            const icon = document.getElementById("logs-toggle-icon");
+            if (logBox.classList.contains("hidden")) {
+                logBox.classList.remove("hidden");
+                icon.innerText = "▲";
+            } else {
+                logBox.classList.add("hidden");
+                icon.innerText = "▼";
+            }
+        }
+
+        function getLogHint() {
+            if (!gameActive || nodes[currentId].type === "end_card") return;
+            const helpBox = document.getElementById("help-box");
+            const title = document.getElementById("help-box-title");
+            const text = document.getElementById("help-box-text");
+
+            helpBox.classList.remove("hidden");
+            title.innerText = "💡 INTERPRETACIÓN ANALÍTICA DE LOGS";
+            text.innerText = nodes[currentId].hint;
+        }
+
+        function askSpecialist(silo) {
+            if (!gameActive || nodes[currentId].type === "end_card") return;
+            
+            // Penalización por llamada (-15 segundos al reloj global)
+            globalTime = Math.max(0, globalTime - 15);
+            document.getElementById("global-timer").innerText = `${globalTime}s`;
+
+            const helpBox = document.getElementById("help-box");
+            const title = document.getElementById("help-box-title");
+            const text = document.getElementById("help-box-text");
+
+            helpBox.classList.remove("hidden");
+            
+            if (silo === 'network') {
+                title.innerText = "📞 RESPUESTA DE NETWORK SECURITY";
+                text.innerText = nodes[currentId].hints.network;
+            } else if (silo === 'endpoint') {
+                title.innerText = "📞 RESPUESTA DE ENDPOINT SECURITY";
+                text.innerText = nodes[currentId].hints.endpoint;
+            } else if (silo === 'planta') {
+                title.innerText = "📞 INFORME DEL RESPONSABLE DE PLANTA";
+                text.innerText = nodes[currentId].hints.planta;
+            }
+
+            if (globalTime <= 0) {
+                endGameByTimeout();
+            }
+        }
+
+        function penalizeStepTimeout() {
+            // Si se agota el tiempo del paso, consume 30s del global y salta automáticamente a la peor rama disponible
+            globalTime = Math.max(0, globalTime - 30);
+            document.getElementById("global-timer").innerText = `${globalTime}s`;
+            
+            if (globalTime <= 0) {
+                endGameByTimeout();
+                return;
+            }
+
+            const currentOptions = nodes[currentId].options;
+            // Elige la última opción (que suele ser la trampa o inacción en el árbol)
+            const nextNode = currentOptions[currentOptions.length - 1].next;
+            alert("⏰ ¡Tiempo de paso agotado! La indecisión ralentizó la respuesta en planta (-30s globales). El incidente escala de forma automática.");
+            renderNode(nextNode);
+        }
+
+        function endGameByTimeout() {
+            gameActive = false;
+            clearInterval(globalInterval);
+            clearInterval(stepInterval);
+            renderNode("GO_RANSOM");
+            document.getElementById("node-title").innerText = "💀 CRISIS FUERA DE TIEMPO: COLAPSO GENERAL";
+            document.getElementById("node-desc").innerText = "El tiempo global de mitigación se agotó por completo. La falta de decisiones oportunas y el exceso de consultas organizacionales permitieron al atacante completar el ciclo completo de sabotaje destructivo sin oposición en la red CN.";
+        }
+
+        function disableHelpButtons() {
+            document.getElementById("btn-network").disabled = true;
+            document.getElementById("btn-endpoint").disabled = true;
+            document.getElementById("btn-planta").disabled = true;
+        }
+
+        function updateProgressBar(phase) {
+            for (let i = 1; i <= 3; i++) {
+                const badge = document.getElementById(`step-${i}-badge`);
+                if (!phase) {
+                    badge.className = "px-2 py-0.5 rounded bg-slate-900 text-slate-700 border border-transparent font-medium";
+                    continue;
+                }
+                if (i === phase) {
+                    badge.className = "px-2 py-0.5 rounded bg-teal-500/20 text-teal-400 border border-teal-500/30 font-bold";
+                } else if (i < phase) {
+                    badge.className = "px-2 py-0.5 rounded bg-slate-900 text-slate-500 border border-slate-800 line-through font-medium";
+                } else {
+                    badge.className = "px-2 py-0.5 rounded bg-slate-950 text-slate-700 border border-transparent font-medium";
+                }
+            }
+        }
+    </script>
+</body>
+</html>
