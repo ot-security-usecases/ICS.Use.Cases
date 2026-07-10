@@ -1,585 +1,1078 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OT Incident Response - Advanced Tabletop Simulator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&display=swap');
-        body { font-family: 'JetBrains Mono', monospace; background-color: #070b12; }
-        .glow-text { text-shadow: 0 0 10px rgba(0, 255, 204, 0.5); }
-        .glow-border:focus { box-shadow: 0 0 15px rgba(0, 255, 204, 0.3); }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0b132b; }
-        ::-webkit-scrollbar-thumb { background: #1c2541; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #00ffcc; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tabletop OT · Respuesta a Incidentes Industriales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e13;
+  --panel:#111820;
+  --panel-2:#161f29;
+  --line:#233241;
+  --text:#e7edf3;
+  --muted:#7d8fa0;
+  --cyan:#2dd4d4;
+  --amber:#ffb020;
+  --red:#ff4d5e;
+  --green:#33d17a;
+  --mono:'IBM Plex Mono', ui-monospace, monospace;
+  --sans:'IBM Plex Sans', system-ui, sans-serif;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:
+    radial-gradient(1200px 500px at 50% -10%, rgba(45,212,212,.06), transparent 60%),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  position:relative;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:1;
+  background:repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 4px);
+  opacity:.35;
+}
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(ellipse at 50% 30%, transparent 45%, rgba(0,0,0,.4) 145%);
+}
+::selection{background:var(--cyan);color:#00161a;}
+a{color:var(--cyan);}
+
+.wrap{max-width:880px;margin:0 auto;padding:32px 20px 120px;position:relative;z-index:2;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* ---------- HEADER / CLOCK ---------- */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(10,14,19,.9);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{
+  max-width:880px;margin:0 auto;padding:12px 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.brand{
+  font-family:var(--mono);font-size:13px;letter-spacing:.06em;
+  color:var(--muted);text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;
+}
+.brand .dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:dotPulse 1.5s ease-in-out infinite;}
+.hud{display:flex;align-items:center;gap:8px;}
+.clock{
+  font-family:var(--mono);font-size:14px;color:var(--amber);
+  border:1px solid var(--line);border-radius:6px;padding:4px 10px;
+  background:var(--panel);white-space:nowrap;transition:box-shadow .3s ease, color .3s ease;
+}
+.clock.tick{box-shadow:0 0 12px rgba(255,176,32,.5);color:#fff;}
+.impact-pill{
+  font-family:var(--mono);font-size:12px;color:var(--muted);
+  border:1px solid var(--line);border-radius:6px;padding:4px 10px;
+  background:var(--panel);white-space:nowrap;transition:all .3s ease;
+}
+.impact-pill.low{color:var(--green);border-color:rgba(51,209,122,.4);}
+.impact-pill.med{color:var(--amber);border-color:rgba(255,176,32,.4);}
+.impact-pill.high{color:var(--red);border-color:rgba(255,77,94,.4);}
+
+/* ---------- PHASE TRACKER ---------- */
+.phase-tracker{position:relative;margin-bottom:28px;display:none;animation:fadeUp .5s ease both;}
+.phase-track{position:absolute;top:5px;left:12%;right:12%;height:2px;background:var(--line);}
+.phase-track-fill{height:100%;width:0%;background:var(--cyan);transition:width .5s ease, background .3s ease;}
+.phase-steps{display:flex;justify-content:space-between;position:relative;z-index:1;}
+.phase-step{display:flex;flex-direction:column;align-items:center;gap:6px;width:25%;}
+.phase-dot{width:11px;height:11px;border-radius:50%;background:var(--panel);border:2px solid var(--line);transition:all .3s ease;}
+.phase-label{font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:center;transition:color .3s ease;}
+.phase-step.done .phase-dot{background:var(--cyan);border-color:var(--cyan);}
+.phase-step.done .phase-label{color:var(--cyan);}
+.phase-step.active .phase-dot{background:var(--amber);border-color:var(--amber);box-shadow:0 0 10px var(--amber);animation:dotPulse 1.5s ease-in-out infinite;}
+.phase-step.active .phase-label{color:var(--amber);}
+.phase-step.broken .phase-dot{background:var(--red);border-color:var(--red);box-shadow:0 0 10px var(--red);animation:dotPulseRed 1.1s ease-in-out infinite;}
+.phase-step.broken .phase-label{color:var(--red);}
+@keyframes dotPulse{0%,100%{box-shadow:0 0 4px var(--amber);}50%{box-shadow:0 0 14px var(--amber);}}
+@keyframes dotPulseRed{0%,100%{box-shadow:0 0 4px var(--red);}50%{box-shadow:0 0 14px var(--red);}}
+
+/* ---------- TYPE ---------- */
+h1{
+  font-family:var(--mono);font-weight:700;font-size:clamp(26px,4.5vw,38px);
+  letter-spacing:-.01em;margin:8px 0 4px;line-height:1.15;color:#fff;
+}
+.eyebrow{
+  font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:10px;
+}
+h2{
+  font-family:var(--mono);font-size:15px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 14px;
+}
+p{color:#c7d2dc;margin:0 0 14px;}
+.lede{font-size:17px;color:#dbe4ec;}
+
+/* ---------- SECTIONS ---------- */
+section{margin-top:44px;}
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:22px 22px;transition:box-shadow .4s ease, border-color .4s ease;
+}
+.card.glow-critical{box-shadow:inset 0 0 120px rgba(255,77,94,.08);border-color:rgba(255,77,94,.35);}
+.card.glow-warn{box-shadow:inset 0 0 120px rgba(255,176,32,.08);border-color:rgba(255,176,32,.35);}
+.card.glow-ok{box-shadow:inset 0 0 120px rgba(51,209,122,.08);border-color:rgba(51,209,122,.35);}
+.card.glow-info{box-shadow:inset 0 0 120px rgba(45,212,212,.08);border-color:rgba(45,212,212,.35);}
+
+/* ---------- INTRO ---------- */
+#intro{animation:fadeUp .5s ease both;}
+#intro > *{animation:fadeUp .55s ease both;}
+#intro > *:nth-child(1){animation-delay:.02s;}
+#intro > *:nth-child(2){animation-delay:.06s;}
+#intro > *:nth-child(3){animation-delay:.10s;}
+#intro > *:nth-child(4){animation-delay:.14s;}
+#intro > *:nth-child(5){animation-delay:.18s;}
+#intro > *:nth-child(6){animation-delay:.22s;}
+#intro > *:nth-child(7){animation-delay:.26s;}
+#intro > *:nth-child(8){animation-delay:.30s;}
+#intro > *:nth-child(9){animation-delay:.34s;}
+#intro > *:nth-child(10){animation-delay:.38s;}
+#intro > *:nth-child(11){animation-delay:.42s;}
+
+/* ---------- ARCHITECTURE DIAGRAM ---------- */
+.diagram-toggle{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:13px;color:var(--cyan);
+  background:transparent;border:1px solid var(--line);border-radius:6px;
+  padding:8px 14px;cursor:pointer;margin:6px 0 18px;transition:border-color .2s ease, transform .15s ease;
+}
+.diagram-toggle:hover{border-color:var(--cyan);transform:translateY(-1px);}
+.diagram{
+  border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  background:var(--panel-2);
+  display:none;
+}
+.diagram.open{display:block;animation:fadeUp .35s ease both;}
+.level{
+  display:grid;grid-template-columns:76px 1fr;border-top:1px solid var(--line);
+}
+.level:first-child{border-top:none;}
+.level-tag{
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  padding:14px 10px;border-right:1px solid var(--line);
+  display:flex;align-items:flex-start;justify-content:center;
+  writing-mode:vertical-rl;text-orientation:mixed;letter-spacing:.08em;
+}
+.level-body{padding:12px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.node{
+  font-family:var(--mono);font-size:12px;
+  border:1px solid var(--line);border-radius:6px;
+  padding:7px 10px;background:#0d1319;color:#c7d2dc;
+  display:flex;align-items:center;gap:6px;transition:all .3s ease;
+}
+.node .led{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none;transition:background .3s ease;}
+.node.ok .led{background:var(--green);}
+.node.alert .led{background:var(--amber);animation:ledPulseAmber 1.3s ease-in-out infinite;}
+.node.bad .led{background:var(--red);animation:ledPulseRed 1s ease-in-out infinite;}
+.node.watch{border-color:var(--cyan);}
+@keyframes ledPulseAmber{0%,100%{box-shadow:0 0 3px var(--amber);}50%{box-shadow:0 0 11px var(--amber);}}
+@keyframes ledPulseRed{0%,100%{box-shadow:0 0 3px var(--red);}50%{box-shadow:0 0 13px var(--red);}}
+.sep{color:var(--muted);font-family:var(--mono);font-size:12px;}
+.subnet{font-size:10px;color:var(--muted);}
+
+/* ---------- INTRO KEY FACTS ---------- */
+.facts{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  margin:18px 0;
+}
+.fact{background:var(--panel);padding:16px 18px;}
+.fact .k{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.fact .v{font-size:15px;color:var(--text);margin-top:4px;}
+
+/* ---------- START BUTTON ---------- */
+.start-btn{
+  font-family:var(--mono);font-size:15px;font-weight:600;
+  background:var(--cyan);color:#00161a;border:none;border-radius:8px;
+  padding:14px 26px;cursor:pointer;letter-spacing:.02em;
+  transition:transform .15s ease, box-shadow .15s ease;
+  animation:ctaGlow 2.6s ease-in-out infinite;
+}
+.start-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(45,212,212,.4);}
+@keyframes ctaGlow{0%,100%{box-shadow:0 0 0 rgba(45,212,212,0);}50%{box-shadow:0 0 22px rgba(45,212,212,.3);}}
+
+/* ---------- EXERCISE ---------- */
+#exercise{display:none;}
+.timeline{margin-bottom:22px;display:flex;flex-direction:column;gap:6px;}
+.tl-item{
+  font-family:var(--mono);font-size:12px;color:var(--muted);
+  display:flex;gap:10px;align-items:baseline;animation:fadeUp .3s ease both;
+}
+.tl-item .t{color:var(--cyan);width:52px;flex:none;}
+.tl-item .c{color:#aebccb;}
+
+.cost-box{
+  border-left:3px solid var(--amber);
+  background:rgba(255,176,32,.07);
+  border-radius:0 8px 8px 0;
+  padding:12px 16px;margin-bottom:20px;
+  animation:fadeUp .4s ease both;
+}
+.cost-box .cost-label{
+  font-family:var(--mono);font-size:11px;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--amber);margin-bottom:5px;display:flex;align-items:center;gap:6px;
+}
+.cost-box p{margin:0;color:#d9c9a3;font-size:13.5px;line-height:1.5;}
+
+.stage-tag{
+  display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--amber);border:1px solid rgba(255,176,32,.4);
+  border-radius:5px;padding:3px 8px;margin-bottom:12px;
+}
+.stage-time{color:var(--muted);font-family:var(--mono);font-size:12px;margin-left:8px;}
+
+#nodeText p{animation:fadeUp .45s ease both;}
+#nodeText p:nth-of-type(2){animation-delay:.08s;}
+#nodeText p:nth-of-type(3){animation-delay:.14s;}
+
+.options{display:flex;flex-direction:column;gap:10px;margin-top:20px;}
+.opt{
+  position:relative;overflow:hidden;text-align:left;background:var(--panel-2);border:1px solid var(--line);
+  border-radius:8px;padding:14px 16px 14px 19px;color:var(--text);cursor:pointer;
+  font-family:var(--sans);font-size:14.5px;line-height:1.45;
+  transition:border-color .15s ease, background .15s ease, transform .15s ease;
+  display:flex;gap:12px;animation:fadeUp .4s ease both;
+}
+.opt:nth-child(1){animation-delay:.06s;}
+.opt:nth-child(2){animation-delay:.13s;}
+.opt:nth-child(3){animation-delay:.20s;}
+.opt::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cyan);transform:scaleY(0);transition:transform .2s ease;}
+.opt:hover{border-color:var(--cyan);background:#132029;transform:translateX(2px);}
+.opt:hover::before{transform:scaleY(1);}
+.opt .letter{
+  font-family:var(--mono);color:var(--cyan);font-weight:700;flex:none;
+}
+
+/* ---------- ENDING ---------- */
+#ending{display:none;}
+.ending-badge{
+  font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+  padding:5px 10px;border-radius:5px;display:inline-block;margin-bottom:14px;
+  animation:fadeUp .4s ease both;
+}
+.badge-critical{background:rgba(255,77,94,.12);color:var(--red);border:1px solid rgba(255,77,94,.4);}
+.badge-warn{background:rgba(255,176,32,.12);color:var(--amber);border:1px solid rgba(255,176,32,.4);}
+.badge-ok{background:rgba(51,209,122,.12);color:var(--green);border:1px solid rgba(51,209,122,.4);}
+.badge-info{background:rgba(45,212,212,.12);color:var(--cyan);border:1px solid rgba(45,212,212,.4);}
+
+#endingTitle{animation:fadeUp .45s ease both;animation-delay:.06s;}
+#endingCostBox{animation-delay:.1s;}
+#endingText{animation:fadeUp .45s ease both;animation-delay:.16s;}
+
+.impact-summary{
+  margin-top:20px;border-top:1px solid var(--line);padding-top:16px;
+  display:flex;gap:12px;align-items:flex-start;animation:fadeUp .45s ease both;animation-delay:.22s;
+}
+.impact-summary .tag{flex:none;margin-top:2px;}
+.impact-summary p{margin:0;font-size:14px;color:#c7d2dc;}
+
+.recap{
+  margin-top:22px;border-top:1px solid var(--line);padding-top:18px;
+  animation:fadeUp .45s ease both;animation-delay:.28s;
+}
+.recap h3{font-family:var(--mono);font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
+.recap ol{margin:0;padding-left:18px;color:#aebccb;font-size:13.5px;}
+.recap li{margin-bottom:10px;}
+.recap .cost-line{color:#c99b4a;display:block;margin-top:2px;}
+.recap .note-line{color:var(--muted);display:block;margin-top:2px;}
+
+.restart-btn{
+  margin-top:26px;font-family:var(--mono);font-size:13px;
+  background:transparent;color:var(--cyan);border:1px solid var(--line);
+  border-radius:6px;padding:10px 16px;cursor:pointer;transition:border-color .2s ease, transform .15s ease;
+}
+.restart-btn:hover{border-color:var(--cyan);transform:translateY(-1px);}
+
+footer{margin-top:60px;color:var(--muted);font-size:12px;font-family:var(--mono);text-align:center;}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.001s !important;}
+}
+</style>
 </head>
-<body class="text-gray-100 min-h-screen flex flex-col justify-between selection:bg-teal-500 selection:text-slate-900">
+<body>
 
-    <div id="intro-screen" class="max-w-5xl mx-auto p-4 md:p-8 space-y-6 my-auto">
-        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-6 md:p-8 shadow-2xl backdrop-blur-md">
-            <h1 class="text-3xl font-bold tracking-wider text-teal-400 glow-text flex items-center gap-3">
-                <span class="w-3 h-3 rounded-full bg-teal-400 animate-ping"></span>
-                OT-SIM: MANUAL DE ARQUITECTURA INDUSTRIAL
-            </h1>
-            <p class="text-xs text-slate-400 mt-2">Antes de iniciar el ejercicio, revise el entorno tecnológico y de red bajo su supervisión:</p>
-            
-            <hr class="border-slate-800 my-4">
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="dot"></span>tabletop · respuesta ot/ics</div>
+    <div class="hud">
+      <div class="impact-pill" id="impactPill">Impacto operativo: —</div>
+      <div class="clock" id="clock">08:14 hrs</div>
+    </div>
+  </div>
+</div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-slate-950 p-4 rounded-lg border border-slate-800">
-                    <span class="text-teal-400 font-bold text-xs block mb-2">🛡️ SEGMENTACIÓN EN FIREWALL HA</span>
-                    <ul class="text-xs space-y-2 text-slate-300">
-                        <li><b class="text-amber-400">Untrust (IT):</b> 192.168.4.0/24</li>
-                        <li><b class="text-amber-400">IDMZ (Servicios):</b> 192.168.2.0/24</li>
-                        <li><b class="text-amber-400">PCN (Supervisión):</b> 192.168.1.0/24 (VLAN 1)</li>
-                        <li><b class="text-amber-400">CN (Control):</b> 192.168.0.0/24 (VLAN 0)</li>
-                    </ul>
-                </div>
-                <div class="bg-slate-950 p-4 rounded-lg border border-slate-800">
-                    <span class="text-teal-400 font-bold text-xs block mb-2">🔀 NÚCLEO DE CONECTIVIDAD OT</span>
-                    <p class="text-xs text-slate-300 leading-relaxed">
-                        El <b>Switch Core PCN es Capa 3</b>. Esto significa que el tráfico entre la <b>VLAN 1</b> y la <b>VLAN 0 (CN)</b> se enruta directamente de manera abierta, <b>sin pasar por el Firewall de Convergencia</b>.
-                    </p>
-                </div>
-                <div class="bg-slate-950 p-4 rounded-lg border border-slate-800">
-                    <span class="text-teal-400 font-bold text-xs block mb-2">👁️ VISIBILIDAD DE SEGURIDAD (SIEM)</span>
-                    <p class="text-xs text-slate-300 leading-relaxed">
-                        Su <b>SIEM</b> centraliza los registros del Firewall HA y las alertas de <b>Claroty</b>. Claroty captura tráfico de forma pasiva únicamente en los puertos espejo (SPAN) del Switch Core y de la IDMZ.
-                    </p>
-                </div>
-            </div>
+<div class="wrap">
 
-            <div class="mt-4 p-4 bg-red-950/20 border border-red-900/30 rounded-lg text-xs text-slate-300">
-                ⚠️ <b class="text-red-400">NOTA OPERATIVA CRÍTICA:</b> Todos los servidores de planta (Jump Servers, SCADA, HMI, EWS) corren sobre sistemas operativos <b>Windows</b>. Las comunicaciones finales de campo utilizan el protocolo industrial **Modbus TCP (Puerto 502)** sin cifrado.
-            </div>
+  <div class="phase-tracker" id="phaseTracker">
+    <div class="phase-track"><div class="phase-track-fill" id="phaseFill"></div></div>
+    <div class="phase-steps">
+      <div class="phase-step" data-phase="deteccion"><div class="phase-dot"></div><div class="phase-label">Detección</div></div>
+      <div class="phase-step" data-phase="contencion"><div class="phase-dot"></div><div class="phase-label">Contención</div></div>
+      <div class="phase-step" data-phase="erradicacion"><div class="phase-dot"></div><div class="phase-label">Erradicación</div></div>
+      <div class="phase-step" data-phase="recuperacion"><div class="phase-dot"></div><div class="phase-label">Recuperación</div></div>
+    </div>
+  </div>
 
-            <div class="mt-6 text-center">
-                <button onclick="startGame()" class="px-8 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-slate-950 font-bold rounded-lg tracking-widest uppercase shadow-lg text-sm transition-all">
-                    Entendido ➔ Iniciar Simulación de Crisis
-                </button>
-            </div>
+  <!-- ================= INTRO ================= -->
+  <section id="intro">
+    <div class="eyebrow">Ejercicio de mesa — Ciclo completo del incidente</div>
+    <h1>Detección, contención, erradicación y recuperación</h1>
+    <p class="lede">Una alerta acaba de dispararse en la planta. Lo que decidas en los próximos minutos determinará si el incidente se queda en un evento controlado o termina con un compañero herido. No hay una única respuesta correcta: cada decisión tiene un costo, y no siempre es un costo de seguridad.</p>
+
+    <h2 style="margin-top:34px;">Contexto de la red</h2>
+    <p>La arquitectura sigue el <strong>modelo de Purdue</strong>, a partir del nivel 4. Un firewall separa IT (nivel 4, <strong>VLAN4</strong>) del resto de la planta. Su interfaz 1 va hacia IT. Su interfaz 2 entrega la <strong>IDMZ</strong> (<strong>VLAN3</strong>, <code>192.168.3.0/24</code>), que cuelga de un switch propio de la IDMZ, donde están los jump servers, el servidor de respaldos de configuración y el IDS. Su interfaz 3 entrega la red <strong>PCN</strong>, que llega a un switch capa 3 con dos VLAN: <strong>VLAN1 = PCN</strong> (<code>192.168.1.0/24</code>) y <strong>VLAN0 = CN</strong> (<code>192.168.0.0/24</code>), donde están el DCS, el SCADA y los clientes de control. PCN no tiene salida a Internet ni acceso directo desde IT: todo pasa por el firewall. IT tiene su propio firewall hacia Internet.</p>
+    <p>En CN hay además un <strong>SIS (Sistema Instrumentado de Seguridad)</strong>, físicamente independiente del DCS: es la última barrera de protección del proceso, pensada para actuar aunque el DCS esté comprometido. No sustituye una buena respuesta a incidentes — solo reacciona cuando ya se cruzó un umbral físico peligroso —, pero es parte de la arquitectura real de una planta como esta.</p>
+    <p>Como visibilidad se cuenta con un <strong>IDS</strong> alimentado por puertos espejo del switch de PCN y del switch de la IDMZ, y un <strong>SIEM</strong> que correlaciona ambos firewalls y el IDS.</p>
+    <p>Una cosa más: la IDMZ y el enlace PCN–CN no solo transportan tráfico sospechoso. Por ahí pasa soporte remoto legítimo, replicación de historiador, visibilidad de SCADA y acceso de ingeniería a los PLCs. Contener no es gratis — cada acción que aísla algo también corta a alguien que lo estaba usando de forma legítima. Después de cada decisión vas a ver qué se rompió del lado operativo, no solo qué se contuvo del lado de seguridad.</p>
+    <p>El ejercicio sigue las cuatro fases del ciclo completo: primero <strong>detectas</strong>, luego <strong>contienes</strong> para frenar el avance, después <strong>erradicas</strong> la amenaza del entorno —decidiendo qué tan a fondo lo haces— y finalmente <strong>recuperas</strong> la operación normal. El rastreador de arriba muestra en qué fase estás en todo momento.</p>
+
+    <button class="diagram-toggle" onclick="toggleDiagram()">▸ Ver diagrama de arquitectura</button>
+    <div class="diagram" id="diagram">
+      <div class="level">
+        <div class="level-tag">NIVEL 4 · IT</div>
+        <div class="level-body">
+          <div class="node ok" data-zone="it"><span class="led"></span>Red corporativa IT <span class="subnet">VLAN4</span></div>
+          <span class="sep">↔</span>
+          <div class="node ok" data-zone="itfw"><span class="led"></span>Firewall IT–Internet</div>
         </div>
+      </div>
+      <div class="level">
+        <div class="level-tag">FIREWALL</div>
+        <div class="level-body">
+          <div class="node ok" data-zone="fw"><span class="led"></span>Firewall perimetral · If.1→VLAN4 (IT) · If.2→VLAN3 (IDMZ) · If.3→PCN</div>
+        </div>
+      </div>
+      <div class="level">
+        <div class="level-tag">IDMZ</div>
+        <div class="level-body">
+          <div class="node ok" data-zone="dmz"><span class="led"></span>Switch IDMZ · VLAN3 <span class="subnet">192.168.3.0/24</span></div>
+          <div class="node ok" data-zone="dmz"><span class="led"></span>Jump servers</div>
+          <div class="node ok" data-zone="dmz"><span class="led"></span>Servidor de respaldos <span class="subnet">config. PLCs y switch L3</span></div>
+          <div class="node watch" data-zone="idsdmz"><span class="led" style="background:var(--cyan)"></span>IDS (espejo IDMZ)</div>
+        </div>
+      </div>
+      <div class="level">
+        <div class="level-tag">NIVEL 3 · PCN</div>
+        <div class="level-body">
+          <div class="node ok" data-zone="pcn"><span class="led"></span>Switch L3 · VLAN1 = PCN <span class="subnet">192.168.1.0/24</span></div>
+          <div class="node watch" data-zone="idspcn"><span class="led" style="background:var(--cyan)"></span>IDS (espejo PCN)</div>
+        </div>
+      </div>
+      <div class="level">
+        <div class="level-tag">NIVEL 1–2 · CN</div>
+        <div class="level-body">
+          <div class="node ok" data-zone="cn"><span class="led"></span>VLAN0 = CN <span class="subnet">192.168.0.0/24</span></div>
+          <div class="node ok" data-zone="cn"><span class="led"></span>DCS / SCADA / clientes</div>
+          <div class="node ok" data-zone="sis"><span class="led"></span>SIS <span class="subnet">independiente del DCS</span></div>
+        </div>
+      </div>
+      <div class="level">
+        <div class="level-tag">SOC</div>
+        <div class="level-body">
+          <div class="node watch" data-zone="siem"><span class="led" style="background:var(--cyan)"></span>SIEM · correlaciona firewalls + IDS</div>
+        </div>
+      </div>
     </div>
 
-    <div id="game-screen" class="hidden w-full max-w-6xl mx-auto p-4 flex-grow flex flex-col justify-between gap-4">
-        
-        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-6 w-full md:w-auto">
-                <div>
-                    <span class="text-[10px] text-slate-500 block uppercase font-bold tracking-wider">Tiempo Restante de la Planta</span>
-                    <div class="text-xl font-bold text-red-400 font-mono" id="global-timer">500s</div>
-                </div>
-                <div class="flex-grow md:w-32">
-                    <span class="text-[10px] text-slate-500 block uppercase font-bold tracking-wider">Tiempo de Reacción por Paso</span>
-                    <div class="w-full bg-slate-950 h-2 rounded overflow-hidden mt-1 border border-slate-800">
-                        <div id="step-timer-bar" class="bg-teal-400 h-full transition-all duration-1000" style="width: 100%;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-[11px]">
-                <span id="step-1-badge" class="px-2 py-0.5 rounded font-bold">FASE 1: IT/IDMZ</span>
-                <span class="text-slate-600">➔</span>
-                <span id="step-2-badge" class="px-2 py-0.5 rounded font-bold">FASE 2: PCN</span>
-                <span class="text-slate-600">➔</span>
-                <span id="step-3-badge" class="px-2 py-0.5 rounded font-bold">FASE 3: CN</span>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-grow items-stretch">
-            
-            <div class="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-xl p-6 flex flex-col justify-between shadow-xl">
-                <div>
-                    <div class="flex justify-between items-center border-b border-slate-800/50 pb-2 mb-4">
-                        <span id="node-zone" class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 bg-slate-950 border border-slate-800 rounded"></span>
-                        <span id="node-id" class="text-xs text-slate-500 font-mono"></span>
-                    </div>
-
-                    <div class="space-y-4">
-                        <h2 id="node-title" class="text-lg md:text-xl font-bold text-white"></h2>
-                        <p id="node-desc" class="text-slate-300 text-xs md:text-sm leading-relaxed border-l-2 border-teal-500 pl-3 py-0.5"></p>
-                    </div>
-
-                    <div class="mt-4 border border-slate-800 rounded-lg overflow-hidden bg-slate-950">
-                        <button onclick="toggleLogs()" class="w-full bg-slate-900 px-4 py-2 text-left text-xs font-bold text-slate-400 hover:bg-slate-800 flex justify-between items-center">
-                            <span>📁 CONSOLE: LOGS CRUDOS DEL SISTEMA (SIEM INBOUND)</span>
-                            <span id="logs-toggle-icon">▼</span>
-                        </button>
-                        <div id="logs-content" class="p-3 font-mono text-[11px] text-emerald-400 whitespace-pre-wrap leading-tight hidden max-h-36 overflow-y-auto bg-slate-950"></div>
-                    </div>
-                </div>
-
-                <div id="interaction-area" class="mt-6 space-y-2.5"></div>
-            </div>
-
-            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-xl">
-                <div class="space-y-4">
-                    <h3 class="text-xs font-bold text-teal-400 tracking-wider uppercase border-b border-slate-800 pb-2">🚨 Silos de Respuesta e Inteligencia</h3>
-                    <p class="text-[11px] text-slate-400 leading-snug">Cada llamada a un especialista consume tiempo global (-15 segundos), pero le otorgará pistas críticas para deducir el incidente correctamente.</p>
-                    
-                    <div class="space-y-2">
-                        <button onclick="askSpecialist('network')" id="btn-network" class="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs p-3 rounded-lg flex items-center justify-between group">
-                            <div>
-                                <span class="font-bold text-slate-200 block group-hover:text-teal-400">📞 Network Security Team</span>
-                                <span class="text-[10px] text-slate-500">Analiza enrutamiento, firewalls y puertos.</span>
-                            </div>
-                            <span class="text-[10px] bg-red-950/40 text-red-400 px-1.5 py-0.5 rounded font-mono border border-red-900/30">-15s</span>
-                        </button>
-
-                        <button onclick="askSpecialist('endpoint')" id="btn-endpoint" class="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs p-3 rounded-lg flex items-center justify-between group">
-                            <div>
-                                <span class="font-bold text-slate-200 block group-hover:text-teal-400">📞 Endpoint Security Team</span>
-                                <span class="text-[10px] text-slate-500">Analiza sistemas Windows de planta.</span>
-                            </div>
-                            <span class="text-[10px] bg-red-950/40 text-red-400 px-1.5 py-0.5 rounded font-mono border border-red-900/30">-15s</span>
-                        </button>
-
-                        <button onclick="askSpecialist('planta')" id="btn-planta" class="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs p-3 rounded-lg flex items-center justify-between group">
-                            <div>
-                                <span class="font-bold text-slate-200 block group-hover:text-teal-400">📞 Responsable de Planta</span>
-                                <span class="text-[10px] text-slate-500">Analiza el estado e impacto de la maquinaria física.</span>
-                            </div>
-                            <span class="text-[10px] bg-red-950/40 text-red-400 px-1.5 py-0.5 rounded font-mono border border-red-900/30">-15s</span>
-                        </button>
-                    </div>
-
-                    <div id="help-box" class="p-3 bg-teal-950/20 border border-teal-900/30 rounded-lg hidden">
-                        <span class="text-[10px] font-bold text-teal-400 font-mono uppercase block" id="help-box-title"></span>
-                        <p class="text-xs text-slate-300 mt-1 leading-normal" id="help-box-text"></p>
-                    </div>
-                </div>
-
-                <button onclick="getLogHint()" class="w-full py-2 bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 hover:border-teal-500/30 text-xs rounded-lg font-bold transition-all mt-4 flex items-center justify-center gap-2">
-                    💡 Analizar Logs Crudos (Pista del Evento Actual)
-                </button>
-            </div>
-
-        </div>
-
+    <div class="facts">
+      <div class="fact"><div class="k">Vector de infección</div><div class="v">Red de IT (nivel 4)</div></div>
+      <div class="fact"><div class="k">Objetivo en riesgo</div><div class="v">DCS del horno · integridad física</div></div>
+      <div class="fact"><div class="k">Herramientas de detección</div><div class="v">IDS (espejo IDMZ y PCN) + SIEM</div></div>
+      <div class="fact"><div class="k">Impacto si no se actúa</div><div class="v">Incremento de temperatura del horno con riesgo para el ingeniero en sitio</div></div>
     </div>
 
-    <footer class="border-t border-slate-900 bg-slate-950/80 p-3 text-center text-[10px] text-slate-600 font-mono">
-        Tabletop Avanzado OT • Resiliencia ante Ataques Basados en Windows y Manipulación Modbus TCP • 2026
-    </footer>
+    <p>Vas a tomar el rol del equipo de respuesta. En cada paso verás la hora, lo que reportan tus herramientas, y tres decisiones posibles. Después de elegir, sabrás qué se contuvo y qué se rompió del lado operativo. Elige una opción para avanzar.</p>
+    <button class="start-btn" onclick="startExercise()">▶ Comenzar ejercicio</button>
+  </section>
 
-    <script>
-        const nodes = {
-            // ================= FASE 1: IT / IDMZ =================
-            "P1": {
-                title: "Acceso Inicial Detectado en la IDMZ",
-                zone: "Capa 4 / IT untrust ➔ IDMZ",
-                phase: 1,
-                desc: "Un analista del SOC nota una alerta en el SIEM. La cuenta legítima 'Proveedor_Eng_02' completó una sesión VPN e inició una conexión RDP remota hacia el Jump Server basado en Windows en el segmento IDMZ. El operador de campo afirma que no hay mantenimientos programados hoy.",
-                logs: '{\n  "timestamp": "2026-07-09T19:40:12Z",\n  "source_ip": "192.168.4.52",\n  "dest_ip": "192.168.2.10",\n  "event": "Firewall_HA_Permit",\n  "rule": "IT-to-IDMZ-RDP",\n  "service": "RDP (TCP 3389)",\n  "user": "Proveedor_Eng_02",\n  "note": "SIEM Correlated: 5 previous authentication failures from external geos recorded within 10 minutes."\n}',
-                hint: "El atacante ha ganado acceso inicial usando credenciales válidas exfiltradas. Al usar un protocolo legítimo (RDP), no disparará firmas tradicionales de malware, pero la actividad de red previa delata un compromiso de cuenta.",
-                hints: {
-                    network: "Network Security: 'El tráfico cruza el Firewall HA correctamente hacia la IP de la IDMZ mediante la regla permitida. Sin embargo, no podemos ver qué comandos ejecuta dentro del flujo RDP cifrado.'",
-                    endpoint: "Endpoint Security: 'El servidor 192.168.2.10 registra un inicio de sesión exitoso de Windows (Event ID 4624) de tipo interactivo de red. El usuario ya está dentro de la consola.'",
-                    planta: "Responsable de Planta: 'No tenemos ningún contratista autorizado en este turno. Si es un ciberataque, necesitamos contenerlo antes de que baje a la red de procesos.'"
-                },
-                options: [
-                    { text: "Aislar de inmediato el Jump Server en la IDMZ a nivel de switch y forzar el cierre de todas las sesiones RDP locales.", next: "VIC_EARLY" },
-                    { text: "Confiar en las capacidades de inspección de estado del Firewall de convergencia y mantener la sesión bajo observación pasiva.", next: "S1A" },
-                    { text: "Ejecutar un bloqueo inmediato del usuario en el Active Directory Corporativo localizado en el segmento de IT.", next: "S1B" }
-                ]
-            },
-            "S1A": {
-                title: "Bypass de IDMZ y Descubrimiento Local",
-                zone: "IDMZ (192.168.2.0/24)",
-                phase: 1,
-                desc: "La inacción permitió que el atacante utilizara el Jump Server Windows como cabeza de playa. Ha comenzado a ejecutar tácticas de Descubrimiento (Discovery) mediante utilidades nativas de administración del sistema (LolBins) para mapear los servidores de control.",
-                logs: 'Windows Event Logs (192.168.2.10):\nEventID: 4688 - New Process Created\nCmdLine: powershell.exe -ExecutionPolicy Bypass -Command "Get-NetIPAddress; net view /domain"\nTarget: Active Reconnaissance on internal plant segments.',
-                hint: "El atacante está abusando de comandos legítimos de administración (Living off the Land). Esto le permite identificar los servidores Windows de supervisión (SCADA/HMI) en la PCN sin generar ruido en herramientas pasivas.",
-                hints: {
-                    network: "Network Security: 'Vemos un incremento brusco de consultas RPC hacia los servidores del segmento PCN (192.168.1.0/24) originadas desde el Jump Server.'",
-                    endpoint: "Endpoint Security: 'El atacante está usando scripts para evadir la política de ejecución local. El servidor Windows no cuenta con el agente EDR configurado en modo restrictivo.'",
-                    planta: "Responsable de Planta: 'Las interfaces de operación todavía responden bien, pero si el intruso descubre la ruta a los servidores SCADA, perderemos el control.'"
-                },
-                options: [
-                    { text: "Desplegar de emergencia una directiva restrictiva en el Endpoint / Jump Server para bloquear la ejecución de scripts.", next: "P2" },
-                    { text: "Reiniciar de emergencia el Firewall de convergencia para limpiar las tablas de estado y bloquear permanentemente la IDMZ.", next: "GO_IMPACTS_NO_CONT" },
-                    { text: "Asumir que se trata de un escaneo automático residual de las herramientas de mantenimiento y esperar reporte formal.", next: "GO_RANSOM" }
-                ]
-            },
-            "S1B": {
-                title: "La Sesión Huérfana de Windows",
-                zone: "IDMZ - Red de Servidores",
-                phase: 1,
-                desc: "La trampa de IT funcionó a medias: bloquear el usuario en el AD centralizado evita nuevos accesos, pero la sesión RDP que ya estaba establecida de forma local dentro del servidor Windows de la IDMZ sigue abierta y completamente operativa. El atacante inicia el movimiento lateral hacia la PCN.",
-                logs: '{\n  "source": "Claroty_Passive_Sensor",\n  "alert": "Anomalous Lateral Movement",\n  "details": "Active SMB/RPC Session detected from IDMZ (192.168.2.10) to SCADA_Server (192.168.1.15) over port 445.",\n  "status": "Firewall permitted based on historical Engineering access rules."\n}',
-                hint: "En infraestructuras Windows, cortar la cuenta de red en el AD no destruye los tokens de sesión de los procesos RDP locales ya interactuando en memoria. El atacante saltó al SCADA.",
-                hints: {
-                    network: "Network Security: 'El tráfico de la IDMZ a la PCN está permitido por los puertos legados de compartición de archivos (TCP 445). El atacante ya se movió de segmento.'",
-                    endpoint: "Endpoint Security: 'Confirmado. El atacante utilizó pass-the-hash o credenciales cacheadas localmente para brincar del Jump Server al servidor SCADA en la VLAN 1.'",
-                    planta: "Responsable de Planta: 'Los operadores ven ruidos en la interfaz SCADA. Algo se está conectando de manera paralela a la consola principal de la planta.'"
-                },
-                options: [
-                    { text: "Deshabilitar inmediatamente los puertos de red asignados al Jump Server en el Switch físico de la IDMZ.", next: "P2" },
-                    { text: "Generar un ticket prioritario para que el área de soporte de IT analice la sesión interactiva del servidor.", next: "GO_RANSOM" },
-                    { text: "Ejecutar un escaneo intrusivo de vulnerabilidades desde IT hacia el segmento de control para forzar la desconexión.", next: "GO_IMPACTS_NO_CONT" }
-                ]
-            },
+  <!-- ================= EXERCISE ================= -->
+  <section id="exercise">
+    <div class="card">
+      <div class="timeline" id="timeline"></div>
+      <div id="costBox"></div>
+      <div class="stage-tag" id="stageTag">Detección</div>
+      <span class="stage-time" id="stageTime"></span>
+      <div id="nodeText"></div>
+      <div class="options" id="optionsBox"></div>
+    </div>
+  </section>
 
-            // ================= FASE 2: RED PCN =================
-            "P2": {
-                title: "Movimiento Lateral Ciego en la PCN",
-                zone: "Red PCN - VLAN 1 ➔ VLAN 0",
-                phase: 2,
-                desc: "El atacante se ha posicionado en el Servidor SCADA Windows (192.168.1.15). Desde ahí, ejecuta un movimiento lateral directo hacia la Estación de Ingeniería (EWS: 192.168.0.5) en la VLAN 0 (Red CN). El Firewall de convergencia reporta 0 logs de este salto. Claroty, sin embargo, genera una alerta crítica.",
-                logs: '🚨 [CLAROTY ALERT - CRITICAL - MULTI-VLAN-BYPASS]\nEvent: Unapproved Remote Administration Connection\nSource: 192.168.1.15 (VLAN 1 - PCN)\nDestination: 192.168.0.5 (VLAN 0 - CN)\nProtocol: WinRM / WMI (TCP 5985)\nReason: Traffic routed at Layer 3 Core Switch without passing through HA Firewall.',
-                hint: "El diseño de la red posee una debilidad: el Switch Core es Capa 3 e interconecta de forma abierta las VLANs de planta. Buscar logs en el firewall no servirá de nada. Debe aislar el tráfico en los switches.",
-                hints: {
-                    network: "Network Security: 'Revisamos el Firewall HA y no vemos ningún log de conexión entre la .1.15 y la .0.5. El tráfico fue ruteado de forma local por el Switch Core Capa 3.'",
-                    endpoint: "Endpoint Security: 'La EWS de Windows en la VLAN 0 acaba de recibir una ejecución remota. El atacante tiene ahora control sobre la herramienta que programa los PLCs.'",
-                    planta: "Responsable de Planta: '¡La EWS tiene acceso directo a los controladores de proceso Modbus! Si modifican la lógica de los lazos de control, detendrán físicamente la planta de gas.'"
-                },
-                options: [
-                    { text: "Ingresar al Switch Core Capa 3 y deshabilitar administrativamente (shutdown) los puertos físicos o la MAC de la EWS (192.168.0.5).", next: "P3" },
-                    { text: "Concentrar al equipo en auditar minuciosamente las reglas del Firewall HA para encontrar por qué no está bloqueando el tráfico inter-VLAN.", next: "S2A" },
-                    { text: "Lanzar comandos de rastreo y un escaneo forzado con Nmap desde un segmento externo para intentar aturdir las conexiones del atacante.", next: "S2B" }
-                ]
-            },
-            "S2A": {
-                title: "Pérdida de Tiempo por Auditoría Errada",
-                zone: "Red PCN - Línea de Supervisión",
-                phase: 2,
-                desc: "Perdiste tiempo crítico auditando el Firewall. El enrutamiento plano de Capa 3 en el switch puenteó la seguridad. El atacante, desde la EWS, ha comenzado a emitir ráfagas de comandos maliciosos hacia los PLCs de control. Las pantallas de operaciónSCADA empiezan a parpadear.",
-                logs: '🚨 [SIEM ALARM - TELEMETRY OUT OF BOUNDS]\nSource: Claroty Pasive Sensor\nTraffic: Heavy Modbus TCP traffic bursting to PLC_Compresor (192.168.0.101:502).\nCommand: Function Code 06 (Write Single Register) detected continuously.\nStatus: SCADA HMIs dropping packets due to connection exhaustion.',
-                hint: "El atacante está inyectando comandos industriales Modbus TCP directo a la red CN. Al mismo tiempo, satura los canales de comunicación para cegar a los operadores de planta.",
-                hints: {
-                    network: "Network Security: 'No hay rastro en el Firewall. La ráfaga ocurre puramente abajo en el switch de distribución de la VLAN 0.'",
-                    endpoint: "Endpoint Security: 'La EWS de Windows está corriendo un script automatizado que escupe comandos Modbus secuenciales en ráfaga.'",
-                    planta: "Responsable de Planta: 'Las pantallas de los operadores se congelaron. No sabemos qué valores tienen las líneas de gas en este instante. ¡Perdimos la telemetría!'"
-                },
-                options: [
-                    { text: "Dirigirse al rack físico de distribución y desconectar manualmente el enlace de red directo de la EWS.", next: "P3" },
-                    { text: "Implementar un bloqueo global del puerto Modbus (TCP 502) en el Firewall perimetral corporativo para frenar el ataque.", next: "GO_IMPACTS_NO_CONT" },
-                    { text: "Aislar pasivamente el tráfico con Claroty y esperar a ver si los mecanismos internos automáticos del PLC rechazan la escritura.", next: "GO_RANSOM" }
-                ]
-            },
-            "S2B": {
-                title: "Guerra de Escaneos y Caída de Dispositivos Legacy",
-                zone: "PCN - Infraestructura de Planta",
-                phase: 2,
-                desc: "El escaneo agresivo con Nmap saturó el ancho de banda y desbordó los búferes de memoria de los switches de acceso y PLCs heredados (Legacy). Los operadores pierden comunicación con los lazos de campo. Los sistemas Windows se muestran inestables, pero la sesión de ataque sigue activa.",
-                logs: 'DCS System Event:\n[ERROR] Communication Lost with Remote I/O Modules.\n[CRITICAL] Industrial Switches reporting high CPU utilization due to ARP/ICMP flooding.\nControl network latency exceeded safety thresholds ( > 500ms ).',
-                hint: "Las herramientas de escaneo tradicionales de IT (como Nmap) suelen colapsar las frágiles pilas de red de los dispositivos industriales antiguos. Provocaste una denegación de servicio interna.",
-                hints: {
-                    network: "Network Security: 'Nmap inundó los switches legacy. Toda la red de la planta está bloqueada por colisión de paquetes.'",
-                    endpoint: "Endpoint Security: 'Los servidores Windows SCADA están perdiendo sincronía y tirando excepciones de red por tiempo de espera agotado.'",
-                    planta: "Responsable de Planta: '¡Esto es un desastre! Estamos completamente a ciegas y los compresores siguen zumbando. Necesitamos cortar la energía o la red general ya.'"
-                },
-                options: [
-                    { text: "Efectuar un Shutdown de emergencia controlado en el switch principal de la PCN para aislar totalmente el segmento de control.", next: "VIC_PARTOUT" },
-                    { text: "Configurar filtros avanzados en la interfaz de Claroty para intentar mitigar los paquetes de escaneo de red.", next: "GO_IMPACTS_NO_CONT" },
-                    { text: "Esperar a que termine el ciclo del comando Nmap y confiar en que el tráfico vuelva a la normalidad por sí solo.", next: "GO_RANSOM" }
-                ]
-            },
+  <!-- ================= ENDING ================= -->
+  <section id="ending">
+    <div class="card" id="endingCard">
+      <div class="ending-badge" id="endingBadge"></div>
+      <h1 id="endingTitle" style="font-size:26px;"></h1>
+      <div id="endingCostBox"></div>
+      <div id="endingText"></div>
+      <div class="impact-summary" id="impactSummary"></div>
+      <div class="recap">
+        <h3>Cómo llegaste aquí</h3>
+        <ol id="recapList"></ol>
+      </div>
+      <button class="restart-btn" onclick="restart()">↺ Reiniciar ejercicio</button>
+    </div>
+  </section>
 
-            // ================= FASE 3: RED CN =================
-            "P3": {
-                title: "Sabotaje Crítico y Peligro Físico",
-                zone: "CN - Red de Campo / VLAN 0",
-                phase: 3,
-                desc: "El atacante ha logrado sobreescribir con éxito los registros de control (Setpoints) en el PLC del Compresor de Gas Principal (`192.168.0.101`). Las válvulas automáticas de desahogo han sido forzadas a cerrarse y la presión mecánica en las tuberías escala de forma vertical. Las pantallas SCADA están congeladas por el ataque.",
-                logs: '🚨 [CLAROTY EXPLOIT ALERT - CRITICAL]\nDevice: PLC_Compresor_01 (192.168.0.101)\nActivity: Registry 40002 (Pressure Setpoint) modified from 120 PSI to 850 PSI.\nTelemetry Warning: Physical limit threshold breached. Mechanical failure hazard imminent.',
-                hint: "Cuando un atacante ya controla los registros Modbus a nivel físico en la red de campo, cualquier intento de contención basado exclusivamente en software (red o Windows) empeorará el escenario o llegará tarde. Se requiere acción física.",
-                hints: {
-                    network: "Network Security: 'Ya no hay comandos que filtrar. Los paquetes Modbus maliciosos ya fueron procesados y guardados en la memoria del PLC.'",
-                    endpoint: "Endpoint Security: 'Intentar tirar un script o parchar la EWS ahora tardará minutos debido al reinicio de los servicios de Windows. No hay tiempo.'",
-                    planta: "Responsable de Planta: '¡La presión en las líneas de gas superó la tolerancia física! Si el compresor no se detiene de inmediato, sufriremos una ruptura mecánica mayor o una explosión general de la línea.'"
-                },
-                options: [
-                    { text: "Presionar de inmediato el Botón Físico de Parada de Emergencia (Hongo ESD) en la consola central de control.", next: "VIC_PARTOUT" },
-                    { text: "Enviar con urgencia a un operador de campo hacia el gabinete para cerrar las válvulas de gas de alimentación de forma manual.", next: "S3A" },
-                    { text: "Inyectar comandos Modbus inversos desde otra terminal para tratar de contrarrestar el setpoint del atacante en el PLC.", next: "GO_IMPACTS_NO_CONT" }
-                ]
-            },
-            "S3A": {
-                title: "Riesgo de Operación en Campo",
-                zone: "CN - Patio de Compresores",
-                phase: 3,
-                desc: "El operador llega al patio de válvulas, pero las alarmas acústicas de sobrepresión física se encuentran activas. Los compresores vibran violentamente debido a la carga forzada por el script del atacante. Operar mecánicamente los componentes en este estado implica un riesgo severo para la vida humana.",
-                logs: 'Planta Sensor Telemetry:\n[CRITICAL] Line Pressure: 780 PSI (Safety Max: 450 PSI)\n[WARNING] Structural Vibration detected on Compression Skids.\n[DANGER] Hazardous area entry restricted due to structural failure risk.',
-                hint: "El proceso industrial ha entrado en una fase inestable crítica. La prioridad número uno en entornos OT bajo la metodología safety siempre debe ser resguardar las vidas humanas frente a los activos mecánicos.",
-                hints: {
-                    network: "Network Security: 'La red local está saturada, no podemos enviar comandos de desconexión remota a los actuadores.'",
-                    endpoint: "Endpoint Security: 'Los sistemas siguen enviando la instrucción de cierre desde la memoria corrupta de la EWS.'",
-                    planta: "Responsable de Planta: '¡El patio es una zona de peligro mortal en este segundo! Si la tubería estalla con el operador ahí, será fatal. ¡Debemos evacuar!'"
-                },
-                options: [
-                    { text: "Priorizar la vida humana: Ordenar la evacuación inmediata de todo el patio de procesos y activar sirenas de evacuación.", next: "VIC_PARTOUT_HUMAN" },
-                    { text: "Ordenar al operador que abra el gabinete eléctrico en campo a la fuerza para tumbar los interruptores principales del PLC.", next: "GO_IMPACTS_NO_CONT" },
-                    { text: "Instruir al operador que espere resguardado en sitio mientras se intentan descargar los planos lógicos en las oficinas de ingeniería.", next: "GO_RANSOM" }
-                ]
-            },
+  <footer>tabletop OT/ICS — ejercicio de simulación con fines de entrenamiento</footer>
+</div>
 
-            // ================= RESULTADOS FINALES =================
-            "VIC_EARLY": {
-                type: "end_card",
-                statusClass: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-                title: "🏆 AMENAZA CONTENIDA (MÍNIMO IMPACTO OPERATIVO)",
-                desc: "¡Excelente agilidad y razonamiento! El equipo identificó correctamente que el bloqueo en el Active Directory corporativo de IT era insuficiente contra sesiones de Windows persistentes en memoria. Al aislar localmente el Jump Server en la IDMZ y liquidar los procesos de red activos, neutralizaron al atacante en las capas superiores. La planta y las redes PCN/CN se mantuvieron intactas.",
-                compromise: "Mínimo (Contenido en Capa DMZ - Proceso al 100%)"
-            },
-            "VIC_PARTOUT": {
-                type: "end_card",
-                statusClass: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-                title: "⚠️ CONTENIDO CON IMPACTOS IMPORTANTES (PARO DE PLANTA)",
-                desc: "Se logró la contención física y ciber-física de la crisis salvaguardando la infraestructura de la estación de gas. Sin embargo, recurrir a respuestas drásticas tardías (como apagar switches core o presionar el Hongo de Parada de Emergencia ESD) causó un paro total de producción no programado. Los lazos de control entraron en modo seguro. El restablecimiento tomará días, generando altas pérdidas financieras.",
-                compromise: "Medio-Alto (Llegó a Capa 1 - Paro de Planta Seguro)"
-            },
-            "VIC_PARTOUT_HUMAN": {
-                type: "end_card",
-                statusClass: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-                title: "⚠️ CONTENIDO CON DAÑOS MATERIALES (VIDAS A SALVO)",
-                desc: "Reacción tardía en el plano digital, lo que otorgó tiempo al atacante para alterar mecánicamente las presiones via Modbus TCP. A pesar de la pérdida inminente de los equipos de compresión por sobreesfuerzo estructural, el equipo azul priorizó el pilar principal de OT: la Seguridad Humana (Safety). La evacuación total evitó fatalidades. Los activos físicos sufrieron daños severos, pero el personal está a salvo.",
-                compromise: "Crítico en Activos (Capa 0 Afectada - Cero Fatalidades)"
-            },
-            "GO_IMPACTS_NO_CONT": {
-                type: "end_card",
-                statusClass: "bg-red-500/10 text-red-400 border-red-500/20",
-                title: "❌ IMPACTOS NEGATIVOS SEVEROS SIN CONTENCIÓN",
-                desc: "Fracaso en la gestión de crisis industrial. Tratar de mitigar el ataque aplicando herramientas e ideas tradicionales de IT (como lanzar Nmap ruidoso sobre redes legacy, inyectar contra-comandos Modbus en caliente o aplicar parches de software a servidores intermedios en plena crisis) desestabilizó fatalmente las comunicaciones de planta. Se provocaron fallas mecánicas descontroladas y el atacante retuvo los accesos en todo momento.",
-                compromise: "Crítico y Fuera de Control (Daños de Infraestructura)"
-            },
-            "GO_RANSOM": {
-                type: "end_card",
-                statusClass: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-                title: "💀 NO CONTENIDO: SECUESTRO TOTAL DE OPERACIONES",
-                desc: "Fallo catastrófico inducido por la burocracia y la inacción ante las alertas tempranas del SIEM y Claroty. Centrarse en auditar logs del firewall perimetral mientras el Switch Core Capa 3 ruteaba en plano le otorgó minutos de oro al atacante. Toda la infraestructura Windows (EWS, SCADA, HMI) fue cifrada de extremo a extremo, los PLCs fueron bloqueados en estados inestables y se recibió una nota de rescate por el control de la planta.",
-                compromise: "Total (Pérdida Completa de la Propiedad Industrial)"
-            }
-        };
+<script>
+/* ---------------- DATA ---------------- */
 
-        let currentId = "P1";
-        let globalTime = 500;
-        let stepTime = 45;
-        let globalInterval = null;
-        let stepInterval = null;
-        let gameActive = false;
+const ENDINGS = {
+  E1: {
+    badge: 'badge-critical', glow:'glow-critical',
+    title: 'Amenaza no contenida — planta comprometida, hay un herido',
+    zoneState: {it:'bad',dmz:'bad',pcn:'bad',cn:'bad'},
+    text: `<p>El controlador del horno recibió el comando malicioso antes de que cualquier medida de contención surtiera efecto. El set point de temperatura se alteró y la alarma llegó demasiado tarde: el ingeniero que se encontraba en el área sufrió una lesión derivada del incremento de temperatura.</p>
+    <p>El incidente escaló desde IT hasta el nivel 1 sin que ninguna barrera —firewall, segmentación PCN/CN o acción en sitio— lograra detenerlo a tiempo. El ciclo se rompió en la fase de contención: nunca hubo oportunidad de erradicar nada, porque la amenaza nunca quedó contenida. El SIS, independiente del DCS, existía como última barrera física, pero solo reacciona cuando ya se cruza un umbral peligroso — para entonces, el ingeniero ya estaba expuesto durante su inspección de rutina cerca del horno. Un SIS ayuda a evitar un desastre mayor, pero no reemplaza una respuesta a incidentes que actúe antes de que el proceso físico llegue a ese punto. Esto es el peor desenlace posible: la brecha entre detección y acción decisiva fue el factor determinante, no la falta de herramientas.</p>`
+  },
+  E2: {
+    badge: 'badge-warn', glow:'glow-warn',
+    title: 'Planta detenida a tiempo — impacto económico, sin heridos',
+    zoneState: {it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    text: `<p>El equipo reconoció que ya no había margen para seguir analizando y ordenó una parada del proceso antes de que la manipulación de temperatura pusiera en riesgo a alguien. Nadie resultó herido, pero la parada no programada del horno generó pérdida de producción y costos de rearranque.</p>
+    <p>Este es un desenlace defendible: se priorizó la seguridad física por encima de la continuidad operativa, y el ciclo se completó hasta la erradicación antes de reiniciar. El costo económico es el precio de haber actuado con margen limitado en vez de esperar una confirmación perfecta.</p>`
+  },
+  E3: {
+    badge: 'badge-ok', glow:'glow-ok',
+    title: 'Amenaza contenida antes de llegar al sistema de control',
+    zoneState: {it:'bad',dmz:'alert',pcn:'ok',cn:'ok'},
+    text: `<p>La amenaza fue aislada en la frontera IT–IDMZ o IDMZ–PCN, antes de que lograra pivotar hacia la VLAN de control (CN). El DCS, el SCADA y el horno operaron sin alteración en ningún momento. No hubo impacto a las personas.</p>
+    <p>Este es el mejor desenlace posible en términos de seguridad física y continuidad del proceso: la combinación de visibilidad temprana (IDS/SIEM), una decisión de contención oportuna y una erradicación completada antes de cerrar el evento evitó que el incidente se convirtiera en un problema de seguridad física.</p>`
+  },
+  E4: {
+    badge: 'badge-info', glow:'glow-info',
+    title: 'Contenida en el nivel de control mediante acción en sitio',
+    zoneState: {it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    text: `<p>La amenaza alcanzó la VLAN de control (CN), pero antes de que el ataque completara su objetivo, se ejecutó una acción decisiva en sitio —desconexión física o lógica del enlace hacia el controlador del horno, o parada controlada del proceso guiada por el operador. No hubo heridos.</p>
+    <p>Este desenlace muestra el valor de tener a alguien en sitio capaz de actuar sobre el proceso físico cuando los controles de red ya no alcanzan a contener el incidente por sí solos, y de completar la erradicación antes de reconectar el controlador.</p>`
+  }
+};
 
-        function startGame() {
-            document.getElementById("intro-screen").classList.add("hidden");
-            document.getElementById("game-screen").classList.remove("hidden");
-            gameActive = true;
-            
-            // Iniciar Temporizador Global
-            globalInterval = setInterval(() => {
-                if (!gameActive) return;
-                globalTime--;
-                document.getElementById("global-timer").innerText = `${globalTime}s`;
-                
-                if (globalTime <= 0) {
-                    endGameByTimeout();
-                }
-            }, 1000);
+function impactLabel(total){
+  if(total<=3) return {text:'Bajo', cls:'low'};
+  if(total<=8) return {text:'Medio', cls:'med'};
+  return {text:'Alto', cls:'high'};
+}
 
-            renderNode("P1");
-        }
+function impactReflection(total, endingId){
+  const lvl = impactLabel(total).text;
+  if(lvl === 'Bajo'){
+    return 'El costo operativo total fue bajo: la mayoría de los servicios legítimos —acceso remoto, visibilidad de SCADA, soporte de IT— siguieron disponibles casi todo el tiempo mientras se resolvía el incidente.';
+  }
+  if(lvl === 'Medio'){
+    return 'El costo operativo fue moderado: durante parte del incidente hubo servicios legítimos interrumpidos —acceso remoto a jump servers, visibilidad de SCADA o soporte de ingeniería— como precio de la contención y la erradicación.';
+  }
+  return 'El costo operativo fue alto: se sacrificó buena parte del acceso remoto legítimo y la visibilidad operativa para lograr la contención y una erradicación a fondo. Vale la pena revisar en la sesión posterior al incidente si toda esa disrupción era necesaria, o si un enfoque más quirúrgico habría logrado el mismo resultado con menor impacto al negocio.';
+}
 
-        function startStepTimer() {
-            clearInterval(stepInterval);
-            stepTime = 45;
-            const bar = document.getElementById("step-timer-bar");
-            bar.style.width = "100%";
-            bar.className = "bg-teal-400 h-full transition-all duration-1000";
+/*
+Cada nodo:
+  time, stage, phase ('deteccion'|'contencion'|'erradicacion'|'recuperacion'), zoneState (opcional),
+  text: [parrafos],
+  options: [{letter, label, next, cost, impact, note}]
+    - cost: consecuencia OPERATIVA de tomar esa decisión (se muestra al llegar al siguiente nodo/desenlace)
+    - impact: entero que se acumula en el HUD (negativo si la decisión restaura servicio)
+    - note: (solo para opciones que llevan a un desenlace) matiz de seguridad sobre cómo se llegó ahí
+*/
+const NODES = {
 
-            stepInterval = setInterval(() => {
-                if (!gameActive) return;
-                stepTime--;
-                let percentage = (stepTime / 45) * 100;
-                bar.style.width = `${percentage}%`;
+  n1: {
+    time:'08:14', stage:'Detección', phase:'deteccion',
+    zoneState:{it:'alert',itfw:'ok',dmz:'alert'},
+    text:[
+      `El SIEM correlaciona eventos del firewall IT–IDMZ: múltiples intentos de autenticación fallidos contra un jump server de la IDMZ, originados desde un equipo de la red de IT.`,
+      `Minutos después, el IDS con espejo en el switch de la IDMZ reporta un patrón de escaneo de puertos hacia los jump servers.`
+    ],
+    options:[
+      {letter:'A', label:'Bloquear de inmediato todo el tráfico IT→IDMZ en el firewall (interfaz 1↔2), sin esperar más análisis.', next:'n2a',
+        cost:'Los jump servers dejan de ser alcanzables desde las oficinas de planta. El personal de IT y de ingeniería que usaba esa ruta para revisar PLCs, subir parches o consultar el historiador se queda sin acceso, sin que aún se supiera si era necesario.', impact:2},
+      {letter:'B', label:'Correlacionar antes de actuar: revisar SIEM e IDS para confirmar indicadores de compromiso.', next:'n2b',
+        cost:'No hay impacto operativo todavía: ningún servicio se interrumpe. El costo es tiempo — cada minuto de análisis es un minuto que el atacante puede seguir moviéndose sin obstáculos.', impact:0},
+      {letter:'C', label:'Escalar a IT para que investiguen el equipo origen, mientras el equipo OT solo observa.', next:'n2c',
+        cost:'No hay impacto operativo inmediato, pero la contención queda en manos de un equipo externo a la planta y su ritmo de respuesta, no del equipo OT.', impact:0},
+    ]
+  },
 
-                if (stepTime <= 15) {
-                    bar.className = "bg-red-500 h-full transition-all duration-1000";
-                }
+  n2a: {
+    time:'08:19', stage:'Contención inicial', phase:'contencion',
+    zoneState:{it:'bad',dmz:'alert'},
+    text:[
+      `El bloqueo detiene el tráfico nuevo entre IT y la IDMZ. Sin embargo, no se sabe todavía si algún jump server ya había sido comprometido antes del bloqueo.`
+    ],
+    options:[
+      {letter:'A', label:'Revisar de inmediato los logs del jump server y del IDS de la IDMZ para confirmar si hubo compromiso previo.', next:'n3temprano',
+        cost:'El bloqueo IT–IDMZ sigue activo mientras se investiga: el soporte remoto de oficina a los jump servers continúa interrumpido un rato más, pero la decisión está informada.', impact:1},
+      {letter:'B', label:'Asumir que el bloqueo fue suficiente y regresar a operación normal sin verificar.', next:'n3riesgo',
+        cost:'El acceso de oficina a los jump servers se restablece de inmediato: cero fricción para el negocio. El problema es que nadie confirmó si el bloqueo llegó a tiempo.', impact:-1},
+      {letter:'C', label:'Aislar también, de forma preventiva, la IDMZ hacia PCN (interfaz 2↔3) mientras se investiga.', next:'n3temprano2',
+        cost:'El switch de PCN pierde su ruta hacia la IDMZ: el historiador deja de replicar hacia sistemas corporativos y el personal de PCN no puede intercambiar archivos con los jump servers mientras dure el aislamiento.', impact:3},
+    ]
+  },
 
-                if (stepTime <= 0) {
-                    clearInterval(stepInterval);
-                    // Penalización por tiempo agotado en el paso: Descuenta del global y avanza con daño
-                    penalizeStepTimeout();
-                }
-            }, 1000);
-        }
+  n2b: {
+    time:'08:27', stage:'Análisis previo a la acción', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad'},
+    text:[
+      `El análisis confirma un indicador de compromiso: un artefacto con capacidad de movimiento lateral que ya estableció una sesión activa contra un jump server de la IDMZ.`
+    ],
+    options:[
+      {letter:'A', label:'Bloquear de inmediato IT→IDMZ y aislar el jump server comprometido.', next:'n3temprano',
+        cost:'Los jump servers quedan fuera de alcance para el personal de oficina mientras dure la contención: cualquier revisión remota de PLCs o soporte de ingeniería queda en pausa.', impact:2},
+      {letter:'B', label:'Solicitar autorización de gerencia de planta antes de aislar, por el posible impacto operativo.', next:'n3demora',
+        cost:'No se interrumpe ningún servicio todavía, pero cada minuto de espera es tiempo que el artefacto usa para seguir moviéndose hacia PCN.', impact:0},
+      {letter:'C', label:'Aislar directamente IDMZ↔PCN (interfaz 2↔3) como medida preventiva, mientras se contiene IT↔IDMZ.', next:'n3temprano2',
+        cost:'PCN queda cortado de la IDMZ: el historiador deja de replicar y la única ruta remota legítima hacia estaciones de ingeniería en PCN se pierde mientras dura el aislamiento.', impact:3},
+    ]
+  },
 
-        function renderNode(nodeId) {
-            currentId = nodeId;
-            const node = nodes[nodeId];
-            
-            // Limpiar cuadro de ayuda de especialistas
-            document.getElementById("help-box").classList.add("hidden");
+  n2c: {
+    time:'08:39', stage:'Esperando confirmación de IT', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad'},
+    text:[
+      `IT tarda 25 minutos en confirmar el equipo origen. En ese tiempo, el IDS de la IDMZ reporta que el jump server comprometido intenta autenticarse contra el switch de capa 3, en la frontera PCN/CN.`
+    ],
+    options:[
+      {letter:'A', label:'No esperar más: aislar de inmediato la interfaz 2↔3 (IDMZ–PCN) en el firewall.', next:'n3frontera',
+        cost:'Se corta la única vía de acceso remoto legítimo hacia PCN: cualquier ingeniero que necesite conectarse a una estación de ingeniería o revisar un programa de PLC desde fuera de planta no podrá hacerlo mientras dure el aislamiento.', impact:3},
+      {letter:'B', label:'Seguir esperando la confirmación formal de IT antes de actuar sobre la red OT.', next:'n3demora',
+        cost:'Ningún servicio se ve afectado todavía, pero el tiempo perdido es exactamente el que el artefacto necesita para llegar a CN.', impact:0},
+      {letter:'C', label:'Contactar directamente al operador en sitio para que vigile el DCS mientras se decide.', next:'n3frontera2',
+        cost:'No hay impacto en la red, pero se suma carga al operador: ahora debe vigilar activamente el HMI además de sus tareas normales, lo que puede distraerlo de otras alarmas del proceso.', impact:1},
+    ]
+  },
 
-            // Elementos de Identificación
-            document.getElementById("node-id").innerText = node.type === "end_card" ? "REPORTE TÁCTICO" : `ID: ${nodeId}`;
-            const zoneBadge = document.getElementById("node-zone");
-            zoneBadge.innerText = node.zone || "CONCLUSIÓN";
-            
-            if (node.type === "end_card") {
-                gameActive = false;
-                clearInterval(globalInterval);
-                clearInterval(stepInterval);
-                zoneBadge.className = `text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${node.statusClass}`;
-                disableHelpButtons();
-            } else {
-                zoneBadge.className = "text-xs font-bold uppercase tracking-wider px-2 py-0.5 bg-slate-950 border border-slate-800 rounded text-amber-400";
-                startStepTimer();
-            }
+  n3temprano: {
+    time:'08:34', stage:'Erradicación en IT / IDMZ', phase:'erradicacion',
+    zoneState:{it:'bad',dmz:'alert',pcn:'ok'},
+    text:[
+      `Los logs confirman que el jump server fue tocado pero no hubo pivote exitoso hacia PCN. El IDS con espejo en el switch PCN no reporta tráfico anómalo. La amenaza está contenida — ahora hay que decidir qué tan a fondo se elimina del entorno antes de cerrar el incidente.`
+    ],
+    options:[
+      {letter:'A', label:'Reinstalación completa (imagen limpia) del equipo de IT origen y del jump server tocado, usando el servidor de respaldos de la IDMZ.', next:'END_E3',
+        cost:'El jump server queda fuera de servicio varias horas mientras se reconstruye desde imagen limpia; el soporte remoto de oficina se mantiene interrumpido durante ese tiempo.', impact:2,
+        note:'Erradicación completa: se eliminó cualquier rastro del artefacto antes de cerrar el incidente.'},
+      {letter:'B', label:'Limpieza con EDR/antivirus sobre el jump server sin reinstalarlo, para restablecer el servicio más rápido.', next:'END_E3',
+        cost:'El jump server vuelve a estar disponible en minutos, pero sin la certeza de una reinstalación completa desde imagen limpia.', impact:0,
+        note:'Erradicación parcial: se limpió el artefacto detectado, pero queda un margen de duda sobre si algo pudo persistir.'},
+      {letter:'C', label:'Solo bloquear el IOC (hash, IP, dominio) en el firewall y el EDR, sin tocar el jump server.', next:'END_E3',
+        cost:'Cero interrupción para el negocio: el jump server sigue funcionando con normalidad todo el tiempo.', impact:0,
+        note:'Erradicación mínima: se bloqueó el indicador conocido, pero el jump server nunca se verificó a fondo — un artefacto con otro IOC podría seguir ahí.'},
+    ]
+  },
 
-            updateProgressBar(node.phase || null);
+  n3temprano2: {
+    time:'08:36', stage:'Erradicación en IDMZ / PCN', phase:'erradicacion',
+    zoneState:{it:'bad',dmz:'alert',pcn:'ok'},
+    text:[
+      `El aislamiento preventivo IDMZ–PCN ya estaba activo. Se confirma que ningún tráfico malicioso alcanzó a cruzar hacia PCN. Antes de levantar el aislamiento, hay que decidir qué tan a fondo se revisa y limpia el entorno.`
+    ],
+    options:[
+      {letter:'A', label:'Reinstalación completa del jump server (desde el servidor de respaldos de la IDMZ) y revisión forense completa de los equipos de PCN que estuvieron expuestos durante el aislamiento.', next:'END_E3',
+        cost:'El aislamiento IDMZ–PCN se extiende varias horas más mientras se hace la revisión forense: el historiador y el acceso remoto siguen interrumpidos ese tiempo adicional.', impact:2,
+        note:'Erradicación completa antes de levantar el aislamiento: mínimo riesgo de que algo haya quedado sin detectar.'},
+      {letter:'B', label:'Limpieza dirigida del jump server con EDR y muestreo rápido de logs en PCN, sin forense exhaustivo.', next:'END_E3',
+        cost:'El aislamiento se levanta en menos tiempo, con una revisión razonable pero no exhaustiva.', impact:1,
+        note:'Erradicación parcial, con una revisión rápida en vez de un forense completo.'},
+      {letter:'C', label:'Levantar el aislamiento en cuanto el jump server queda limpio, sin revisar a fondo el lado de PCN.', next:'END_E3',
+        cost:'El servicio se restablece lo antes posible, priorizando la continuidad operativa sobre la certeza de la limpieza.', impact:0,
+        note:'Erradicación mínima del lado de PCN: se dio por buena la contención sin confirmar a fondo que nada haya cruzado.'},
+    ]
+  },
 
-            // Cargar Logs Crudos en el contenedor
-            const logBox = document.getElementById("logs-content");
-            logBox.innerText = node.logs || "// No se registran logs de red entrantes para este estado.";
-            
-            // Mantener logs ocultos por defecto al cambiar de nodo
-            logBox.classList.add("hidden");
-            document.getElementById("logs-toggle-icon").innerText = "▼";
+  n3frontera: {
+    time:'08:41', stage:'Erradicación en la frontera IDMZ–PCN', phase:'erradicacion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'ok'},
+    text:[
+      `El aislamiento de la interfaz IDMZ–PCN detiene el intento de autenticación hacia el switch de capa 3. El IDS de PCN no observa tráfico anómalo adicional. Antes de restablecer el enlace, hay que decidir el nivel de erradicación.`
+    ],
+    options:[
+      {letter:'A', label:'Reinstalación completa del jump server origen (imagen limpia) y auditoría de las reglas del switch de capa 3 antes de restablecer el enlace.', next:'END_E3',
+        cost:'PCN se queda sin ruta hacia la IDMZ más tiempo del esperado mientras se audita el switch.', impact:2,
+        note:'Erradicación completa: se reconstruyó el punto de entrada y se auditó la frontera antes de reabrirla.'},
+      {letter:'B', label:'Limpieza del jump server con EDR y revisión rápida de logs del switch, sin auditoría completa.', next:'END_E3',
+        cost:'El enlace se restablece en un tiempo intermedio, con una revisión razonable.', impact:1,
+        note:'Erradicación parcial: limpieza razonable, sin una auditoría exhaustiva de la frontera.'},
+      {letter:'C', label:'Restablecer el enlace en cuanto el IDS deja de ver tráfico anómalo, sin intervenir el jump server directamente.', next:'END_E3',
+        cost:'El servicio se restablece de inmediato, sin fricción operativa.', impact:0,
+        note:'Erradicación mínima: se confió en la ausencia de tráfico nuevo como señal suficiente de limpieza.'},
+    ]
+  },
 
-            const interactionArea = document.getElementById("interaction-area");
-            interactionArea.innerHTML = "";
+  n3frontera2: {
+    time:'08:41', stage:'Segundo intento', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'alert'},
+    text:[
+      `El operador reporta operación normal del DCS. Pero diez minutos después, el switch de capa 3 registra un segundo intento de autenticación —ahora exitoso— desde el jump server hacia VLAN1 (PCN).`
+    ],
+    options:[
+      {letter:'A', label:'Aislar de inmediato VLAN1 en el switch, en la frontera PCN/CN.', next:'n4pcn',
+        cost:'PCN queda aislado de CN: el SCADA y las estaciones de operación en PCN dejan de recibir telemetría en tiempo real del DCS, y los operadores pierden visibilidad de las variables de proceso hasta restablecer el enlace.', impact:3},
+      {letter:'B', label:'Analizar el nuevo evento antes de actuar sobre el switch.', next:'n4pcntarde',
+        cost:'No hay impacto operativo todavía, pero cada minuto de análisis acerca al artefacto a la frontera con CN.', impact:0},
+      {letter:'C', label:'Escalar a un comité de crisis antes de tocar la configuración del switch.', next:'n4pcntarde',
+        cost:'No hay impacto operativo inmediato, pero convocar un comité toma tiempo que ya casi no queda.', impact:0},
+    ]
+  },
 
-            if (node.type !== "end_card") {
-                document.getElementById("node-title").innerText = node.title;
-                document.getElementById("node-desc").innerText = node.desc;
+  n3riesgo: {
+    time:'08:59', stage:'La amenaza avanza sin ser vista', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'alert'},
+    text:[
+      `Cuarenta minutos después, el switch de capa 3 (frontera PCN/CN) reporta un intento de autenticación exitoso desde un jump server hacia VLAN1 (PCN). El artefacto pivotó sin ser detectado a tiempo, porque nadie verificó si el bloqueo inicial había sido suficiente.`
+    ],
+    options:[
+      {letter:'A', label:'Aislar de inmediato VLAN1 en el switch (deshabilitar el enlace troncal hacia PCN).', next:'n4pcn',
+        cost:'PCN pierde visibilidad de CN: el SCADA deja de recibir telemetría del DCS y los operadores quedan sin monitoreo remoto del proceso mientras dure el aislamiento.', impact:3},
+      {letter:'B', label:'Iniciar un análisis forense antes de actuar sobre el switch.', next:'n4pcntarde',
+        cost:'No hay impacto operativo todavía, pero cada minuto de análisis es tiempo que el artefacto usa para acercarse a CN.', impact:0},
+      {letter:'C', label:'Notificar a gerencia y esperar la instalación de un comité de crisis antes de actuar.', next:'n4pcntarde',
+        cost:'No hay impacto operativo inmediato, pero es la opción que más tiempo consume antes de actuar.', impact:0},
+    ]
+  },
 
-                node.options.forEach((opt, index) => {
-                    const btn = document.createElement("button");
-                    btn.className = "w-full text-left bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-teal-500/40 p-3 rounded-lg transition-all duration-150 group flex items-start gap-3 focus:outline-none glow-border";
-                    btn.innerHTML = `
-                        <span class="bg-slate-900 border border-slate-700 text-slate-400 font-bold px-1.5 py-0.5 rounded text-[10px] group-hover:text-teal-400 font-mono">
-                            ${String.fromCharCode(65 + index)}
-                        </span>
-                        <span class="text-xs md:text-sm font-medium text-slate-300 group-hover:text-white leading-snug">${opt.text}</span>
-                    `;
-                    btn.onclick = () => renderNode(opt.next);
-                    interactionArea.appendChild(btn);
-                });
-            } else {
-                // Pantalla de Estado de Cierre Final
-                document.getElementById("node-title").innerText = node.title;
-                document.getElementById("node-desc").innerText = node.desc;
-                document.getElementById("node-desc").className = "text-slate-300 text-xs md:text-sm leading-relaxed border-l-2 border-slate-500 pl-3 py-1 bg-slate-950/20 rounded-r-lg";
+  n3demora: {
+    time:'09:04', stage:'El tiempo se agota', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    text:[
+      `Pasaron 45 minutos sin una acción efectiva sobre la red OT. El SIEM reporta que el artefacto ya generó tráfico desde el switch de capa 3 hacia VLAN0 (CN), donde está el DCS.`
+    ],
+    options:[
+      {letter:'A', label:'Actuar ya: desconectar en sitio, física o lógicamente, el enlace hacia el controlador del horno.', next:'n4cn',
+        cost:'El horno queda sin control automático remoto: el proceso debe pasar a operación manual local, lo que implica pérdida de producción mientras se restablece el enlace.', impact:3},
+      {letter:'B', label:'Seguir escalando a gerencia antes de tocar nada en CN, por el riesgo de negocio.', next:'n4cntarde',
+        cost:'No se interrumpe nada todavía, pero es exactamente el tipo de espera que ya le costó tiempo crítico al equipo en pasos anteriores.', impact:0},
+      {letter:'C', label:'Pedir al operador del DCS que valide manualmente si hay anomalías antes de aislar.', next:'n4cnvalida',
+        cost:'No hay impacto en la red; se gana una confirmación de campo a cambio de unos minutos más de exposición.', impact:1},
+    ]
+  },
 
-                const endDiv = document.createElement("div");
-                endDiv.className = "p-4 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono space-y-2";
-                endDiv.innerHTML = `
-                    <p class="text-slate-400"><span class="text-teal-400">📊 VEREDICTO DE LA PLANTA:</span> ${node.compromise}</p>
-                    <p class="text-slate-500 text-[11px]">Simulación finalizada. Analice con los equipos corporativos de IT y los ingenieros de planta (OT) las brechas detectadas en la toma de decisiones y el impacto del tiempo.</p>
-                `;
-                interactionArea.appendChild(endDiv);
+  n4pcn: {
+    time:'09:11', stage:'Erradicación en PCN', phase:'erradicacion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'ok'},
+    text:[
+      `El aislamiento de VLAN1 corta el paso hacia VLAN0 (CN) antes de que el artefacto alcance al DCS. Se confirma que la VLAN de control nunca fue tocada. Antes de restablecer la visibilidad de SCADA, hay que decidir el nivel de erradicación en PCN.`
+    ],
+    options:[
+      {letter:'A', label:'Reinstalación completa de los equipos tocados en PCN e IDMZ, y reconstrucción de la configuración del switch L3 desde el servidor de respaldos.', next:'END_E3',
+        cost:'PCN permanece sin visibilidad de SCADA sobre CN varias horas adicionales mientras se reconstruye el switch desde respaldo.', impact:3,
+        note:'Erradicación completa: se reconstruyó la infraestructura de red tocada antes de dar por cerrado el incidente.'},
+      {letter:'B', label:'Escaneo y limpieza dirigida con EDR en los equipos de PCN, sin reconstruir el switch.', next:'END_E3',
+        cost:'La visibilidad de SCADA se restablece en menos tiempo, con una limpieza razonable pero no forense.', impact:2,
+        note:'Erradicación parcial: limpieza dirigida sin reconstrucción completa de la infraestructura.'},
+      {letter:'C', label:'Bloquear el IOC y dejar monitoreo reforzado del IDS, sin tocar físicamente los equipos de PCN.', next:'END_E3',
+        cost:'La visibilidad de SCADA se restablece de inmediato.', impact:0,
+        note:'Erradicación mínima: se confía en el monitoreo reforzado en vez de una limpieza directa de los equipos.'},
+    ]
+  },
 
-                const resetBtn = document.createElement("button");
-                resetBtn.className = "w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-slate-950 font-bold p-3 rounded-lg text-xs uppercase tracking-wider font-bold mt-2";
-                resetBtn.innerText = "Reiniciar Todo el Ejercicio";
-                resetBtn.onclick = () => location.reload();
-                interactionArea.appendChild(resetBtn);
-            }
-        }
+  n4pcntarde: {
+    time:'09:22', stage:'La amenaza cruza a CN', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'bad'},
+    text:[
+      `El artefacto cruza hacia VLAN0 (CN). El SIEM y el HMI del DCS muestran tráfico y comandos anómalos dirigidos al controlador del horno.`
+    ],
+    options:[
+      {letter:'A', label:'Ejecutar una acción decisiva en sitio: desconectar el controlador o forzar el modo seguro/manual del horno.', next:'n5finalcontain',
+        cost:'El horno pasa a operación manual local de forma abrupta: se detiene o se ralentiza la producción mientras el equipo de mantenimiento restablece el enlace de forma segura.', impact:3},
+      {letter:'B', label:'Esperar confirmación de gerencia antes de actuar físicamente en sitio.', next:'n5finalfail',
+        cost:'No se interrumpe nada todavía, pero ya no queda margen de tiempo para esta espera.', impact:0},
+      {letter:'C', label:'Intentar aislar de forma remota desde el switch de capa 3, sin desplazarse a sitio.', next:'n5finalmixed',
+        cost:'Se pierde visibilidad de SCADA sobre CN sin llegar a garantizar que el controlador quede realmente desconectado del comando malicioso.', impact:2},
+    ]
+  },
 
-        function toggleLogs() {
-            const logBox = document.getElementById("logs-content");
-            const icon = document.getElementById("logs-toggle-icon");
-            if (logBox.classList.contains("hidden")) {
-                logBox.classList.remove("hidden");
-                icon.innerText = "▲";
-            } else {
-                logBox.classList.add("hidden");
-                icon.innerText = "▼";
-            }
-        }
+  n4cn: {
+    time:'09:09', stage:'Acción en sitio', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    text:[
+      `Se desconecta en sitio el enlace hacia el controlador del horno antes de que el ataque complete su objetivo. El SCADA vuelve a mostrar parámetros normales tras la acción.`
+    ],
+    options:[
+      {letter:'A', label:'Confirmar con el operador que el proceso está estable y pasar a la erradicación antes de reconectar.', next:'n4cn_erad',
+        cost:'El horno permanece en modo manual local mientras se decide cómo verificar que el controlador esté limpio.', impact:0},
+    ]
+  },
 
-        function getLogHint() {
-            if (!gameActive || nodes[currentId].type === "end_card") return;
-            const helpBox = document.getElementById("help-box");
-            const title = document.getElementById("help-box-title");
-            const text = document.getElementById("help-box-text");
+  n4cn_erad: {
+    time:'09:14', stage:'Erradicación en CN', phase:'erradicacion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    text:[
+      `El controlador quedó desconectado a tiempo. Antes de reconectarlo y dar por cerrado el incidente, hay que decidir cómo se verifica que la lógica de control no haya sido alterada.`
+    ],
+    options:[
+      {letter:'A', label:'Validar la lógica del PLC/controlador contra el último respaldo conocido bueno antes de reconectar.', next:'END_E4',
+        cost:'El horno permanece en modo manual local varias horas más mientras se valida la lógica del controlador contra el respaldo.', impact:2,
+        note:'Erradicación completa: se confirmó que la lógica de control no fue alterada antes de reconectar.'},
+      {letter:'B', label:'Reconectar el controlador y monitorear de cerca, sin validar la lógica contra un respaldo.', next:'END_E4',
+        cost:'La producción se recupera antes, pero sin la certeza de que la lógica del PLC no haya sido modificada.', impact:1,
+        note:'Erradicación parcial: se priorizó la continuidad sobre la verificación exhaustiva de la lógica del controlador.'},
+      {letter:'C', label:'Reemplazar la estación de ingeniería que fue el origen del pivote, además de reconectar el controlador.', next:'END_E4',
+        cost:'El equipo de ingeniería queda sin su estación de trabajo habitual mientras se reemplaza, y el horno se mantiene en modo manual durante ese tiempo.', impact:2,
+        note:'Erradicación enfocada en el punto de origen del pivote, además de restablecer el controlador de forma segura.'},
+    ]
+  },
 
-            helpBox.classList.remove("hidden");
-            title.innerText = "💡 INTERPRETACIÓN ANALÍTICA DE LOGS";
-            text.innerText = nodes[currentId].hint;
-        }
+  n4cntarde: {
+    time:'09:18', stage:'La temperatura sube', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'bad'},
+    text:[
+      `Mientras se espera autorización, el HMI del DCS muestra un incremento anómalo y sostenido en la temperatura del horno. Suenan las alarmas del proceso.`
+    ],
+    options:[
+      {letter:'A', label:'Actuar ya sin esperar más autorización: ordenar una parada de emergencia (ESD) del horno.', next:'n5finalcontain2',
+        cost:'El horno se detiene por completo: pérdida total de producción durante la parada y el rearranque, además del costo de una ESD no programada.', impact:3},
+      {letter:'B', label:'Continuar esperando la autorización formal antes de actuar.', next:'n5finalfail',
+        cost:'No hay impacto todavía, pero ya no queda margen: la temperatura sigue subiendo mientras se espera.', impact:0},
+      {letter:'C', label:'Pedir al operador que intente corregir el set point manualmente, sin detener el proceso.', next:'n5finalrisky',
+        cost:'Casi no hay impacto operativo visible —la producción sigue— pero es la opción con menor margen de seguridad: se sigue operando con el proceso ya comprometido.', impact:0},
+    ]
+  },
 
-        function askSpecialist(silo) {
-            if (!gameActive || nodes[currentId].type === "end_card") return;
-            
-            // Penalización por llamada (-15 segundos al reloj global)
-            globalTime = Math.max(0, globalTime - 15);
-            document.getElementById("global-timer").innerText = `${globalTime}s`;
+  n4cnvalida: {
+    time:'09:11', stage:'Validación del operador', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    text:[
+      `El operador confirma valores anómalos en el HMI, pero el proceso físico aún no ha reaccionado. Todavía hay margen para actuar.`
+    ],
+    options:[
+      {letter:'A', label:'Con esa confirmación, aislar de inmediato el enlace hacia CN en sitio.', next:'n4cn',
+        cost:'El horno pasa a modo manual local de forma controlada, con el operador ya al tanto de la situación.', impact:1},
+      {letter:'B', label:'Esperar más telemetría antes de decidir.', next:'n4cntarde',
+        cost:'No hay impacto operativo todavía, pero se pierde el margen que la validación del operador acababa de confirmar.', impact:0},
+      {letter:'C', label:'Ordenar al operador iniciar una parada controlada (no de emergencia) mientras se aísla el enlace.', next:'n5finalcontain2',
+        cost:'El horno se detiene de forma ordenada, con menor impacto que una parada de emergencia pero con pérdida de producción durante la parada y el rearranque.', impact:2},
+    ]
+  },
 
-            const helpBox = document.getElementById("help-box");
-            const title = document.getElementById("help-box-title");
-            const text = document.getElementById("help-box-text");
+  n5finalmixed: {
+    time:'09:27', stage:'Contención insuficiente', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'bad'},
+    text:[
+      `El aislamiento remoto llega tarde: el controlador ya había recibido el comando que incrementa el set point de temperatura. Suena una alarma crítica en el HMI. El ingeniero del horno se encuentra en el área, realizando una inspección de rutina.`
+    ],
+    options:[
+      {letter:'A', label:'Alertar de inmediato al ingeniero por radio para que se retire del área y ejecutar el ESD manual.', next:'n6lastchance',
+        cost:'No hay impacto operativo adicional en este momento: la prioridad pasa a la seguridad física del personal.', impact:0},
+      {letter:'B', label:'Confiar en que el ESD automático, si existe, actuará por sí solo.', next:'END_E1',
+        cost:'No se toma ninguna acción operativa: se apuesta todo a que un control automático resuelva el evento sin confirmarlo ni alertar al personal en sitio.', impact:0,
+        note:'Se asumió que un control automático resolvería el evento, sin confirmar que así fuera ni alertar a tiempo al personal en sitio.'},
+      {letter:'C', label:'Intentar corregir el set point de forma remota, en vez de alertar al personal en sitio.', next:'END_E1',
+        cost:'Se prioriza una corrección técnica remota sobre alertar de inmediato al personal que está físicamente en el área de riesgo.', impact:0,
+        note:'Se priorizó una corrección remota sobre la seguridad inmediata del personal en el área.'},
+    ]
+  },
 
-            helpBox.classList.remove("hidden");
-            
-            if (silo === 'network') {
-                title.innerText = "📞 RESPUESTA DE NETWORK SECURITY";
-                text.innerText = nodes[currentId].hints.network;
-            } else if (silo === 'endpoint') {
-                title.innerText = "📞 RESPUESTA DE ENDPOINT SECURITY";
-                text.innerText = nodes[currentId].hints.endpoint;
-            } else if (silo === 'planta') {
-                title.innerText = "📞 INFORME DEL RESPONSABLE DE PLANTA";
-                text.innerText = nodes[currentId].hints.planta;
-            }
+  n6lastchance: {
+    time:'09:29', stage:'Última ventana', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'bad'},
+    text:[
+      `La alerta por radio sale de inmediato. Todo depende de si el ingeniero alcanza a retirarse y el ESD manual se ejecuta antes de que la temperatura llegue a un nivel peligroso.`
+    ],
+    options:[
+      {letter:'A', label:'El ESD manual se ejecuta a tiempo: el proceso se detiene antes del punto crítico.', next:'n6lastchance_erad',
+        cost:'El horno se detiene por completo: pérdida de producción durante la parada y el rearranque, pero sin heridos.', impact:3},
+      {letter:'B', label:'La alerta llega, pero el ingeniero ya estaba muy cerca del punto de mayor riesgo cuando se detiene el proceso.', next:'END_E1',
+        cost:'El proceso finalmente se detiene, pero demasiado cerca del momento crítico como para evitar el daño.', impact:3,
+        note:'La alerta llegó, pero después de una cadena de decisiones tardías que dejaron muy poco margen de reacción.'},
+      {letter:'C', label:'La comunicación por radio falla y el mensaje no llega a tiempo.', next:'END_E1',
+        cost:'No hubo forma de mitigar el impacto operativo: la falla de comunicación eliminó la última ventana de acción.', impact:0,
+        note:'Una falla de comunicación en el último eslabón impidió que la alerta llegara a tiempo.'},
+    ]
+  },
 
-            if (globalTime <= 0) {
-                endGameByTimeout();
-            }
-        }
+  n6lastchance_erad: {
+    time:'09:45', stage:'Erradicación tras el ESD', phase:'erradicacion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    text:[
+      `El horno está detenido de forma segura y no hubo heridos. Antes de reiniciar producción, hay que decidir qué tan a fondo se erradica el artefacto de toda la cadena IT–IDMZ–PCN–CN.`
+    ],
+    options:[
+      {letter:'A', label:'Erradicación completa: reinstalación completa de todos los equipos tocados (origen en IT, jump server, equipos de PCN) usando el servidor de respaldos, y validación de la lógica del controlador antes de reiniciar.', next:'END_E2',
+        cost:'El rearranque del horno se retrasa varias horas adicionales mientras se completa la erradicación en toda la cadena.', impact:3,
+        note:'Erradicación completa antes de reiniciar: mínimo riesgo de reinfección.'},
+      {letter:'B', label:'Limpieza dirigida en los puntos clave (jump server y estación de ingeniería) sin tocar cada equipo de la cadena.', next:'END_E2',
+        cost:'El rearranque se acelera, con una limpieza razonable pero no exhaustiva.', impact:2,
+        note:'Erradicación parcial: se limpiaron los puntos más críticos antes de reiniciar.'},
+      {letter:'C', label:'Reiniciar producción en cuanto el ESD confirma seguridad física, dejando la erradicación completa para después.', next:'END_E2',
+        cost:'El rearranque es lo más rápido posible, pero el artefacto podría seguir presente en algún punto de la red mientras se retoma producción.', impact:0,
+        note:'Erradicación pospuesta: se priorizó reanudar producción sobre confirmar una limpieza completa.'},
+    ]
+  },
 
-        function penalizeStepTimeout() {
-            // Si se agota el tiempo del paso, consume 30s del global y salta automáticamente a la peor rama disponible
-            globalTime = Math.max(0, globalTime - 30);
-            document.getElementById("global-timer").innerText = `${globalTime}s`;
-            
-            if (globalTime <= 0) {
-                endGameByTimeout();
-                return;
-            }
+  n5finalcontain: {
+    time:'09:25', stage:'Contención tardía pero efectiva', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    text:[
+      `La desconexión física del controlador se ejecuta antes de que el comando malicioso tenga efecto sobre la temperatura del horno.`
+    ],
+    options:[
+      {letter:'A', label:'Confirmar con el operador que el proceso quedó estable y pasar a la erradicación antes de reconectar.', next:'n5finalcontain_erad',
+        cost:'El horno queda en operación manual local mientras se decide cómo verificar que el controlador esté limpio.', impact:0},
+    ]
+  },
 
-            const currentOptions = nodes[currentId].options;
-            // Elige la última opción (que suele ser la trampa o inacción en el árbol)
-            const nextNode = currentOptions[currentOptions.length - 1].next;
-            alert("⏰ ¡Tiempo de paso agotado! La indecisión ralentizó la respuesta en planta (-30s globales). El incidente escala de forma automática.");
-            renderNode(nextNode);
-        }
+  n5finalcontain_erad: {
+    time:'09:30', stage:'Erradicación en CN', phase:'erradicacion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    text:[
+      `El controlador quedó desconectado justo a tiempo, sin heridos. Antes de reconectarlo, hay que decidir cómo se verifica que la lógica de control no haya sido alterada.`
+    ],
+    options:[
+      {letter:'A', label:'Validar la lógica del PLC/controlador contra el último respaldo conocido bueno antes de reconectar.', next:'END_E4',
+        cost:'El horno permanece en modo manual local varias horas más mientras se valida la lógica del controlador contra el respaldo.', impact:2,
+        note:'Erradicación completa: se confirmó que la lógica de control no fue alterada antes de reconectar.'},
+      {letter:'B', label:'Reconectar el controlador y monitorear de cerca, sin validar la lógica contra un respaldo.', next:'END_E4',
+        cost:'La producción se recupera antes, pero sin la certeza de que la lógica del PLC no haya sido modificada.', impact:1,
+        note:'Erradicación parcial: se priorizó la continuidad sobre la verificación exhaustiva de la lógica del controlador.'},
+      {letter:'C', label:'Reemplazar la estación de ingeniería que fue el origen del pivote, además de reconectar el controlador.', next:'END_E4',
+        cost:'El equipo de ingeniería queda sin su estación de trabajo habitual mientras se reemplaza, y el horno se mantiene en modo manual durante ese tiempo.', impact:2,
+        note:'Erradicación enfocada en el punto de origen del pivote, además de restablecer el controlador de forma segura.'},
+    ]
+  },
 
-        function endGameByTimeout() {
-            gameActive = false;
-            clearInterval(globalInterval);
-            clearInterval(stepInterval);
-            renderNode("GO_RANSOM");
-            document.getElementById("node-title").innerText = "💀 CRISIS FUERA DE TIEMPO: COLAPSO GENERAL";
-            document.getElementById("node-desc").innerText = "El tiempo global de mitigación se agotó por completo. La falta de decisiones oportunas y el exceso de consultas organizacionales permitieron al atacante completar el ciclo completo de sabotaje destructivo sin oposición en la red CN.";
-        }
+  n5finalcontain2: {
+    time:'09:20', stage:'Parada de emergencia ejecutada', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    text:[
+      `La orden de parada se ejecuta a tiempo. El horno se detiene de forma segura antes de que la temperatura alcance un nivel peligroso.`
+    ],
+    options:[
+      {letter:'A', label:'Confirmar que no hay personal en riesgo y pasar a la erradicación antes de reiniciar.', next:'n5finalcontain2_erad',
+        cost:'La producción queda detenida mientras se decide el nivel de erradicación antes del rearranque.', impact:0},
+    ]
+  },
 
-        function disableHelpButtons() {
-            document.getElementById("btn-network").disabled = true;
-            document.getElementById("btn-endpoint").disabled = true;
-            document.getElementById("btn-planta").disabled = true;
-        }
+  n5finalcontain2_erad: {
+    time:'09:35', stage:'Erradicación antes del rearranque', phase:'erradicacion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    text:[
+      `El horno está detenido de forma segura. Antes de reiniciar producción, hay que decidir qué tan a fondo se erradica el artefacto de toda la cadena IT–IDMZ–PCN–CN.`
+    ],
+    options:[
+      {letter:'A', label:'Erradicación completa: reinstalación completa de todos los equipos tocados (origen en IT, jump server, equipos de PCN) usando el servidor de respaldos, y validación de la lógica del controlador antes de reiniciar.', next:'END_E2',
+        cost:'El rearranque del horno se retrasa varias horas adicionales mientras se completa la erradicación en toda la cadena.', impact:3,
+        note:'Erradicación completa antes de reiniciar: mínimo riesgo de reinfección.'},
+      {letter:'B', label:'Limpieza dirigida en los puntos clave (jump server y estación de ingeniería) sin tocar cada equipo de la cadena.', next:'END_E2',
+        cost:'El rearranque se acelera, con una limpieza razonable pero no exhaustiva.', impact:2,
+        note:'Erradicación parcial: se limpiaron los puntos más críticos antes de reiniciar.'},
+      {letter:'C', label:'Reiniciar producción en cuanto se confirme seguridad física, dejando la erradicación completa para después.', next:'END_E2',
+        cost:'El rearranque es lo más rápido posible, pero el artefacto podría seguir presente en algún punto de la red mientras se retoma producción.', impact:0,
+        note:'Erradicación pospuesta: se priorizó reanudar producción sobre confirmar una limpieza completa.'},
+    ]
+  },
 
-        function updateProgressBar(phase) {
-            for (let i = 1; i <= 3; i++) {
-                const badge = document.getElementById(`step-${i}-badge`);
-                if (!phase) {
-                    badge.className = "px-2 py-0.5 rounded bg-slate-900 text-slate-700 border border-transparent font-medium";
-                    continue;
-                }
-                if (i === phase) {
-                    badge.className = "px-2 py-0.5 rounded bg-teal-500/20 text-teal-400 border border-teal-500/30 font-bold";
-                } else if (i < phase) {
-                    badge.className = "px-2 py-0.5 rounded bg-slate-900 text-slate-500 border border-slate-800 line-through font-medium";
-                } else {
-                    badge.className = "px-2 py-0.5 rounded bg-slate-950 text-slate-700 border border-transparent font-medium";
-                }
-            }
-        }
-    </script>
+  n5finalfail: {
+    time:'09:31', stage:'Sin acción a tiempo', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'bad'},
+    text:[
+      `La autorización nunca llega a tiempo. El proceso de aprobación consumió el margen que quedaba entre la detección y la manipulación física del horno.`
+    ],
+    options:[
+      {letter:'A', label:'Ver el desenlace.', next:'END_E1',
+        cost:'No quedó ninguna acción operativa por tomar: el tiempo que se necesitaba para actuar sobre el proceso físico ya se había agotado.', impact:0,
+        note:'La espera de una autorización formal consumió el tiempo crítico que se necesitaba para actuar sobre el proceso físico.'},
+    ]
+  },
+
+  n5finalrisky: {
+    time:'09:29', stage:'Corrección manual bajo presión', phase:'contencion',
+    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'bad'},
+    text:[
+      `El operador intenta corregir el set point manualmente mientras el proceso sigue activo, sin detenerlo. La corrección no alcanza a compensar el incremento de temperatura a tiempo.`
+    ],
+    options:[
+      {letter:'A', label:'Ver el desenlace.', next:'END_E1',
+        cost:'La producción nunca llegó a detenerse formalmente: se intentó corregir el proceso operando con el sistema ya comprometido, en vez de priorizar la seguridad del personal en sitio.', impact:0,
+        note:'Se intentó corregir el proceso sin detenerlo, en vez de priorizar la seguridad del personal en sitio.'},
+    ]
+  },
+
+};
+
+/* ---------------- STATE ---------------- */
+let path = []; // {stage, letter, label, cost, impact, note}
+let impactTotal = 0;
+const PHASE_ORDER = ['deteccion','contencion','erradicacion','recuperacion'];
+
+const nodeTextEl = document.getElementById('nodeText');
+const optionsBox = document.getElementById('optionsBox');
+const stageTag = document.getElementById('stageTag');
+const stageTime = document.getElementById('stageTime');
+const timelineEl = document.getElementById('timeline');
+const clockEl = document.getElementById('clock');
+const impactPillEl = document.getElementById('impactPill');
+const costBoxEl = document.getElementById('costBox');
+const phaseTrackerEl = document.getElementById('phaseTracker');
+const phaseFillEl = document.getElementById('phaseFill');
+
+function toggleDiagram(){
+  const d = document.getElementById('diagram');
+  d.classList.toggle('open');
+  event.target.textContent = d.classList.contains('open') ? '▾ Ocultar diagrama de arquitectura' : '▸ Ver diagrama de arquitectura';
+}
+
+function startExercise(){
+  document.getElementById('intro').style.display='none';
+  document.getElementById('exercise').style.display='block';
+  phaseTrackerEl.style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+  renderNode('n1', null);
+}
+
+function applyZoneState(state){
+  if(!state) return;
+  document.querySelectorAll('.node').forEach(n=>{
+    const zone = n.dataset.zone;
+    if(state[zone]){
+      n.classList.remove('ok','alert','bad');
+      n.classList.add(state[zone]);
+    }
+  });
+}
+
+function updateImpactPill(){
+  const lvl = impactLabel(impactTotal);
+  impactPillEl.textContent = 'Impacto operativo: ' + lvl.text;
+  impactPillEl.classList.remove('low','med','high');
+  impactPillEl.classList.add(lvl.cls);
+}
+
+function tickClock(newTime){
+  clockEl.textContent = newTime + ' hrs';
+  clockEl.classList.remove('tick');
+  void clockEl.offsetWidth;
+  clockEl.classList.add('tick');
+}
+
+function updatePhaseTracker(phase, broken){
+  const idx = PHASE_ORDER.indexOf(phase);
+  document.querySelectorAll('.phase-step').forEach((el,i)=>{
+    el.classList.remove('done','active','broken');
+    if(broken && i===idx){ el.classList.add('broken'); }
+    else if(i<idx){ el.classList.add('done'); }
+    else if(i===idx){ el.classList.add('active'); }
+  });
+  const pct = (idx/(PHASE_ORDER.length-1))*100;
+  phaseFillEl.style.width = pct+'%';
+  phaseFillEl.style.background = broken ? 'var(--red)' : 'var(--cyan)';
+}
+
+function renderCostBox(cost){
+  if(!cost){ costBoxEl.innerHTML=''; return; }
+  costBoxEl.innerHTML = `<div class="cost-box"><div class="cost-label">⚠ Consecuencia operativa de tu decisión</div><p>${cost}</p></div>`;
+}
+
+function renderNode(id, incomingCost){
+  const node = NODES[id];
+  tickClock(node.time);
+  stageTag.textContent = node.stage;
+  stageTime.textContent = '· ' + node.time + ' hrs';
+  renderCostBox(incomingCost);
+  nodeTextEl.innerHTML = node.text.map(p=>`<p>${p}</p>`).join('');
+  applyZoneState(node.zoneState);
+  updatePhaseTracker(node.phase, false);
+
+  optionsBox.innerHTML='';
+  node.options.forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='opt';
+    btn.innerHTML = `<span class="letter">${opt.letter}</span><span>${opt.label}</span>`;
+    btn.onclick = ()=> choose(node, opt);
+    optionsBox.appendChild(btn);
+  });
+
+  renderTimeline();
+}
+
+function renderTimeline(){
+  timelineEl.innerHTML = path.map(p=>
+    `<div class="tl-item"><span class="t">${p.time}</span><span class="c">${p.stage} → opción ${p.letter}</span></div>`
+  ).join('');
+}
+
+function choose(node, opt){
+  impactTotal += (opt.impact || 0);
+  if(impactTotal < 0) impactTotal = 0;
+  updateImpactPill();
+  path.push({time:node.time, stage:node.stage, letter:opt.letter, label:opt.label, cost:opt.cost, note:opt.note});
+  if(opt.next.startsWith('END_')){
+    renderEnding(opt.next.replace('END_',''), opt.cost);
+  } else {
+    renderNode(opt.next, opt.cost);
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+}
+
+function renderEnding(id, incomingCost){
+  document.getElementById('exercise').style.display='none';
+  document.getElementById('ending').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+
+  const e = ENDINGS[id];
+  const broken = (id === 'E1');
+  updatePhaseTracker(broken ? 'contencion' : 'recuperacion', broken);
+
+  const endingCardEl = document.getElementById('endingCard');
+  endingCardEl.classList.remove('glow-critical','glow-warn','glow-ok','glow-info');
+  endingCardEl.classList.add(e.glow);
+
+  document.getElementById('endingBadge').className = 'ending-badge ' + e.badge;
+  document.getElementById('endingBadge').textContent = 'Desenlace';
+  document.getElementById('endingTitle').textContent = e.title;
+
+  const endingCostBoxEl = document.getElementById('endingCostBox');
+  endingCostBoxEl.innerHTML = incomingCost ? `<div class="cost-box"><div class="cost-label">⚠ Consecuencia operativa de tu última decisión</div><p>${incomingCost}</p></div>` : '';
+
+  document.getElementById('endingText').innerHTML = e.text;
+  applyZoneState(e.zoneState);
+
+  const lvl = impactLabel(impactTotal);
+  document.getElementById('impactSummary').innerHTML =
+    `<div class="impact-pill tag ${lvl.cls}">Impacto operativo acumulado: ${lvl.text}</div><p>${impactReflection(impactTotal, id)}</p>`;
+
+  const recap = document.getElementById('recapList');
+  recap.innerHTML = path.map(p=>
+    `<li><strong>${p.time} hrs</strong> — ${p.stage}: ${p.label}
+      ${p.cost ? `<span class="cost-line">↳ Impacto operativo: ${p.cost}</span>` : ''}
+      ${p.note ? `<span class="note-line">↳ ${p.note}</span>` : ''}
+    </li>`
+  ).join('');
+}
+
+function restart(){
+  path = [];
+  impactTotal = 0;
+  updateImpactPill();
+  document.getElementById('ending').style.display='none';
+  document.getElementById('intro').style.display='block';
+  phaseTrackerEl.style.display='none';
+  document.querySelectorAll('.node').forEach(n=>{
+    n.classList.remove('alert','bad');
+    n.classList.add('ok');
+  });
+  document.querySelectorAll('.node.watch').forEach(n=>n.classList.remove('ok'));
+  clockEl.textContent = '08:14 hrs';
+  clockEl.classList.remove('tick');
+  impactPillEl.textContent = 'Impacto operativo: —';
+  impactPillEl.classList.remove('low','med','high');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
 </body>
 </html>
