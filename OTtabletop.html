@@ -334,10 +334,10 @@ footer{margin-top:60px;color:var(--muted);font-size:12px;font-family:var(--mono)
     <p class="lede">Una alerta acaba de dispararse en la planta. Lo que decidas en los próximos minutos determinará si el incidente se queda en un evento controlado o termina con un compañero herido. No hay una única respuesta correcta: cada decisión tiene un costo, y no siempre es un costo de seguridad.</p>
 
     <h2 style="margin-top:34px;">Contexto de la red</h2>
-    <p>La arquitectura sigue el <strong>modelo de Purdue</strong>, a partir del nivel 4. Un firewall separa IT (nivel 4, <strong>VLAN4</strong>) del resto de la planta. Su interfaz 1 va hacia IT. Su interfaz 2 entrega la <strong>IDMZ</strong> (<strong>VLAN3</strong>, <code>192.168.3.0/24</code>), que cuelga de un switch propio de la IDMZ, donde están los jump servers, el servidor de respaldos de configuración y el IDS. Su interfaz 3 entrega la red <strong>PCN</strong>, que llega a un switch capa 3 con dos VLAN: <strong>VLAN1 = PCN</strong> (<code>192.168.1.0/24</code>) y <strong>VLAN0 = CN</strong> (<code>192.168.0.0/24</code>), donde están el DCS, el SCADA y los clientes de control. PCN no tiene salida a Internet ni acceso directo desde IT: todo pasa por el firewall. IT tiene su propio firewall hacia Internet.</p>
+    <p>La arquitectura sigue el <strong>modelo de Purdue</strong>, a partir del nivel 4. Un firewall separa IT (nivel 4, <strong>VLAN4</strong>) del resto de la planta. Su interfaz 1 va hacia IT. Su interfaz 2 entrega la <strong>IDMZ</strong> (<strong>VLAN3</strong>, <code>192.168.3.0/24</code>), que cuelga de un switch propio de la IDMZ, donde están los jump servers, el servidor de respaldos de configuración y el IDS. Su interfaz 3 entrega la red <strong>Supervision</strong>, que llega a un switch capa 3 con dos VLAN: <strong>VLAN1 = Supervision</strong> (<code>192.168.1.0/24</code>) y <strong>VLAN0 = CN</strong> (<code>192.168.0.0/24</code>), donde están el DCS, el SCADA y los clientes de control. Supervision no tiene salida a Internet ni acceso directo desde IT: todo pasa por el firewall. IT tiene su propio firewall hacia Internet.</p>
     <p>En CN hay además un <strong>SIS (Sistema Instrumentado de Seguridad)</strong>, físicamente independiente del DCS: es la última barrera de protección del proceso, pensada para actuar aunque el DCS esté comprometido. No sustituye una buena respuesta a incidentes — solo reacciona cuando ya se cruzó un umbral físico peligroso —, pero es parte de la arquitectura real de una planta como esta.</p>
-    <p>Como visibilidad se cuenta con un <strong>IDS</strong> alimentado por puertos espejo del switch de PCN y del switch de la IDMZ, y un <strong>SIEM</strong> que correlaciona ambos firewalls y el IDS.</p>
-    <p>Una cosa más: la IDMZ y el enlace PCN–CN no solo transportan tráfico sospechoso. Por ahí pasa soporte remoto legítimo, replicación de historiador, visibilidad de SCADA y acceso de ingeniería a los PLCs. Contener no es gratis — cada acción que aísla algo también corta a alguien que lo estaba usando de forma legítima. Después de cada decisión vas a ver qué se rompió del lado operativo, no solo qué se contuvo del lado de seguridad.</p>
+    <p>Como visibilidad se cuenta con un <strong>IDS</strong> alimentado por puertos espejo del switch de Supervision y del switch de la IDMZ, y un <strong>SIEM</strong> que correlaciona ambos firewalls y el IDS.</p>
+    <p>Una cosa más: la IDMZ y el enlace Supervision–CN no solo transportan tráfico sospechoso. Por ahí pasa soporte remoto legítimo, replicación de historiador, visibilidad de SCADA y acceso de ingeniería a los PLCs. Contener no es gratis — cada acción que aísla algo también corta a alguien que lo estaba usando de forma legítima. Después de cada decisión vas a ver qué se rompió del lado operativo, no solo qué se contuvo del lado de seguridad.</p>
     <p>El ejercicio sigue las cuatro fases del ciclo completo: primero <strong>detectas</strong>, luego <strong>contienes</strong> para frenar el avance, después <strong>erradicas</strong> la amenaza del entorno —decidiendo qué tan a fondo lo haces— y finalmente <strong>recuperas</strong> la operación normal. El rastreador de arriba muestra en qué fase estás en todo momento.</p>
 
     <button class="diagram-toggle" onclick="toggleDiagram()">▸ Ver diagrama de arquitectura</button>
@@ -353,7 +353,7 @@ footer{margin-top:60px;color:var(--muted);font-size:12px;font-family:var(--mono)
       <div class="level">
         <div class="level-tag">FIREWALL</div>
         <div class="level-body">
-          <div class="node ok" data-zone="fw"><span class="led"></span>Firewall perimetral · If.1→VLAN4 (IT) · If.2→VLAN3 (IDMZ) · If.3→PCN</div>
+          <div class="node ok" data-zone="fw"><span class="led"></span>Firewall perimetral · If.1→VLAN4 (IT) · If.2→VLAN3 (IDMZ) · If.3→Supervision</div>
         </div>
       </div>
       <div class="level">
@@ -366,10 +366,10 @@ footer{margin-top:60px;color:var(--muted);font-size:12px;font-family:var(--mono)
         </div>
       </div>
       <div class="level">
-        <div class="level-tag">NIVEL 3 · PCN</div>
+        <div class="level-tag">NIVEL 3 · Supervision</div>
         <div class="level-body">
-          <div class="node ok" data-zone="pcn"><span class="led"></span>Switch L3 · VLAN1 = PCN <span class="subnet">192.168.1.0/24</span></div>
-          <div class="node watch" data-zone="idspcn"><span class="led" style="background:var(--cyan)"></span>IDS (espejo PCN)</div>
+          <div class="node ok" data-zone="Supervision"><span class="led"></span>Switch L3 · VLAN1 = Supervision <span class="subnet">192.168.1.0/24</span></div>
+          <div class="node watch" data-zone="idsSupervision"><span class="led" style="background:var(--cyan)"></span>IDS (espejo Supervision)</div>
         </div>
       </div>
       <div class="level">
@@ -391,7 +391,7 @@ footer{margin-top:60px;color:var(--muted);font-size:12px;font-family:var(--mono)
     <div class="facts">
       <div class="fact"><div class="k">Vector de infección</div><div class="v">Red de IT (nivel 4)</div></div>
       <div class="fact"><div class="k">Objetivo en riesgo</div><div class="v">DCS del horno · integridad física</div></div>
-      <div class="fact"><div class="k">Herramientas de detección</div><div class="v">IDS (espejo IDMZ y PCN) + SIEM</div></div>
+      <div class="fact"><div class="k">Herramientas de detección</div><div class="v">IDS (espejo IDMZ y Supervision) + SIEM</div></div>
       <div class="fact"><div class="k">Impacto si no se actúa</div><div class="v">Incremento de temperatura del horno con riesgo para el ingeniero en sitio</div></div>
     </div>
 
@@ -437,28 +437,28 @@ const ENDINGS = {
   E1: {
     badge: 'badge-critical', glow:'glow-critical',
     title: 'Amenaza no contenida — planta comprometida, hay un herido',
-    zoneState: {it:'bad',dmz:'bad',pcn:'bad',cn:'bad'},
+    zoneState: {it:'bad',dmz:'bad',Supervision:'bad',cn:'bad'},
     text: `<p>El controlador del horno recibió el comando malicioso antes de que cualquier medida de contención surtiera efecto. El set point de temperatura se alteró y la alarma llegó demasiado tarde: el ingeniero que se encontraba en el área sufrió una lesión derivada del incremento de temperatura.</p>
-    <p>El incidente escaló desde IT hasta el nivel 1 sin que ninguna barrera —firewall, segmentación PCN/CN o acción en sitio— lograra detenerlo a tiempo. El ciclo se rompió en la fase de contención: nunca hubo oportunidad de erradicar nada, porque la amenaza nunca quedó contenida. El SIS, independiente del DCS, existía como última barrera física, pero solo reacciona cuando ya se cruza un umbral peligroso — para entonces, el ingeniero ya estaba expuesto durante su inspección de rutina cerca del horno. Un SIS ayuda a evitar un desastre mayor, pero no reemplaza una respuesta a incidentes que actúe antes de que el proceso físico llegue a ese punto. Esto es el peor desenlace posible: la brecha entre detección y acción decisiva fue el factor determinante, no la falta de herramientas.</p>`
+    <p>El incidente escaló desde IT hasta el nivel 1 sin que ninguna barrera —firewall, segmentación Supervision/CN o acción en sitio— lograra detenerlo a tiempo. El ciclo se rompió en la fase de contención: nunca hubo oportunidad de erradicar nada, porque la amenaza nunca quedó contenida. El SIS, independiente del DCS, existía como última barrera física, pero solo reacciona cuando ya se cruza un umbral peligroso — para entonces, el ingeniero ya estaba expuesto durante su inspección de rutina cerca del horno. Un SIS ayuda a evitar un desastre mayor, pero no reemplaza una respuesta a incidentes que actúe antes de que el proceso físico llegue a ese punto. Esto es el peor desenlace posible: la brecha entre detección y acción decisiva fue el factor determinante, no la falta de herramientas.</p>`
   },
   E2: {
     badge: 'badge-warn', glow:'glow-warn',
     title: 'Planta detenida a tiempo — impacto económico, sin heridos',
-    zoneState: {it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    zoneState: {it:'bad',dmz:'bad',Supervision:'bad',cn:'alert'},
     text: `<p>El equipo reconoció que ya no había margen para seguir analizando y ordenó una parada del proceso antes de que la manipulación de temperatura pusiera en riesgo a alguien. Nadie resultó herido, pero la parada no programada del horno generó pérdida de producción y costos de rearranque.</p>
     <p>Este es un desenlace defendible: se priorizó la seguridad física por encima de la continuidad operativa, y el ciclo se completó hasta la erradicación antes de reiniciar. El costo económico es el precio de haber actuado con margen limitado en vez de esperar una confirmación perfecta.</p>`
   },
   E3: {
     badge: 'badge-ok', glow:'glow-ok',
     title: 'Amenaza contenida antes de llegar al sistema de control',
-    zoneState: {it:'bad',dmz:'alert',pcn:'ok',cn:'ok'},
-    text: `<p>La amenaza fue aislada en la frontera IT–IDMZ o IDMZ–PCN, antes de que lograra pivotar hacia la VLAN de control (CN). El DCS, el SCADA y el horno operaron sin alteración en ningún momento. No hubo impacto a las personas.</p>
+    zoneState: {it:'bad',dmz:'alert',Supervision:'ok',cn:'ok'},
+    text: `<p>La amenaza fue aislada en la frontera IT–IDMZ o IDMZ–Supervision, antes de que lograra pivotar hacia la VLAN de control (CN). El DCS, el SCADA y el horno operaron sin alteración en ningún momento. No hubo impacto a las personas.</p>
     <p>Este es el mejor desenlace posible en términos de seguridad física y continuidad del proceso: la combinación de visibilidad temprana (IDS/SIEM), una decisión de contención oportuna y una erradicación completada antes de cerrar el evento evitó que el incidente se convirtiera en un problema de seguridad física.</p>`
   },
   E4: {
     badge: 'badge-info', glow:'glow-info',
     title: 'Contenida en el nivel de control mediante acción en sitio',
-    zoneState: {it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    zoneState: {it:'bad',dmz:'bad',Supervision:'bad',cn:'alert'},
     text: `<p>La amenaza alcanzó la VLAN de control (CN), pero antes de que el ataque completara su objetivo, se ejecutó una acción decisiva en sitio —desconexión física o lógica del enlace hacia el controlador del horno, o parada controlada del proceso guiada por el operador. No hubo heridos.</p>
     <p>Este desenlace muestra el valor de tener a alguien en sitio capaz de actuar sobre el proceso físico cuando los controles de red ya no alcanzan a contener el incidente por sí solos, y de completar la erradicación antes de reconectar el controlador.</p>`
   }
@@ -520,8 +520,8 @@ const NODES = {
         cost:'El bloqueo IT–IDMZ sigue activo mientras se investiga: el soporte remoto de oficina a los jump servers continúa interrumpido un rato más, pero la decisión está informada.', impact:1},
       {letter:'B', label:'Asumir que el bloqueo fue suficiente y regresar a operación normal sin verificar.', next:'n3riesgo',
         cost:'El acceso de oficina a los jump servers se restablece de inmediato: cero fricción para el negocio. El problema es que nadie confirmó si el bloqueo llegó a tiempo.', impact:-1},
-      {letter:'C', label:'Aislar también, de forma preventiva, la IDMZ hacia PCN (interfaz 2↔3) mientras se investiga.', next:'n3temprano2',
-        cost:'El switch de PCN pierde su ruta hacia la IDMZ: el historiador deja de replicar hacia sistemas corporativos y el personal de PCN no puede intercambiar archivos con los jump servers mientras dure el aislamiento.', impact:3},
+      {letter:'C', label:'Aislar también, de forma preventiva, la IDMZ hacia Supervision (interfaz 2↔3) mientras se investiga.', next:'n3temprano2',
+        cost:'El switch de Supervision pierde su ruta hacia la IDMZ: el historiador deja de replicar hacia sistemas corporativos y el personal de Supervision no puede intercambiar archivos con los jump servers mientras dure el aislamiento.', impact:3},
     ]
   },
 
@@ -535,9 +535,9 @@ const NODES = {
       {letter:'A', label:'Bloquear de inmediato IT→IDMZ y aislar el jump server comprometido.', next:'n3temprano',
         cost:'Los jump servers quedan fuera de alcance para el personal de oficina mientras dure la contención: cualquier revisión remota de PLCs o soporte de ingeniería queda en pausa.', impact:2},
       {letter:'B', label:'Solicitar autorización de gerencia de planta antes de aislar, por el posible impacto operativo.', next:'n3demora',
-        cost:'No se interrumpe ningún servicio todavía, pero cada minuto de espera es tiempo que el artefacto usa para seguir moviéndose hacia PCN.', impact:0},
-      {letter:'C', label:'Aislar directamente IDMZ↔PCN (interfaz 2↔3) como medida preventiva, mientras se contiene IT↔IDMZ.', next:'n3temprano2',
-        cost:'PCN queda cortado de la IDMZ: el historiador deja de replicar y la única ruta remota legítima hacia estaciones de ingeniería en PCN se pierde mientras dura el aislamiento.', impact:3},
+        cost:'No se interrumpe ningún servicio todavía, pero cada minuto de espera es tiempo que el artefacto usa para seguir moviéndose hacia Supervision.', impact:0},
+      {letter:'C', label:'Aislar directamente IDMZ↔Supervision (interfaz 2↔3) como medida preventiva, mientras se contiene IT↔IDMZ.', next:'n3temprano2',
+        cost:'Supervision queda cortado de la IDMZ: el historiador deja de replicar y la única ruta remota legítima hacia estaciones de ingeniería en Supervision se pierde mientras dura el aislamiento.', impact:3},
     ]
   },
 
@@ -545,11 +545,11 @@ const NODES = {
     time:'08:39', stage:'Esperando confirmación de IT', phase:'contencion',
     zoneState:{it:'bad',dmz:'bad'},
     text:[
-      `IT tarda 25 minutos en confirmar el equipo origen. En ese tiempo, el IDS de la IDMZ reporta que el jump server comprometido intenta autenticarse contra el switch de capa 3, en la frontera PCN/CN.`
+      `IT tarda 25 minutos en confirmar el equipo origen. En ese tiempo, el IDS de la IDMZ reporta que el jump server comprometido intenta autenticarse contra el switch de capa 3, en la frontera Supervision/CN.`
     ],
     options:[
-      {letter:'A', label:'No esperar más: aislar de inmediato la interfaz 2↔3 (IDMZ–PCN) en el firewall.', next:'n3frontera',
-        cost:'Se corta la única vía de acceso remoto legítimo hacia PCN: cualquier ingeniero que necesite conectarse a una estación de ingeniería o revisar un programa de PLC desde fuera de planta no podrá hacerlo mientras dure el aislamiento.', impact:3},
+      {letter:'A', label:'No esperar más: aislar de inmediato la interfaz 2↔3 (IDMZ–Supervision) en el firewall.', next:'n3frontera',
+        cost:'Se corta la única vía de acceso remoto legítimo hacia Supervision: cualquier ingeniero que necesite conectarse a una estación de ingeniería o revisar un programa de PLC desde fuera de planta no podrá hacerlo mientras dure el aislamiento.', impact:3},
       {letter:'B', label:'Seguir esperando la confirmación formal de IT antes de actuar sobre la red OT.', next:'n3demora',
         cost:'Ningún servicio se ve afectado todavía, pero el tiempo perdido es exactamente el que el artefacto necesita para llegar a CN.', impact:0},
       {letter:'C', label:'Contactar directamente al operador en sitio para que vigile el DCS mientras se decide.', next:'n3frontera2',
@@ -559,9 +559,9 @@ const NODES = {
 
   n3temprano: {
     time:'08:34', stage:'Erradicación en IT / IDMZ', phase:'erradicacion',
-    zoneState:{it:'bad',dmz:'alert',pcn:'ok'},
+    zoneState:{it:'bad',dmz:'alert',Supervision:'ok'},
     text:[
-      `Los logs confirman que el jump server fue tocado pero no hubo pivote exitoso hacia PCN. El IDS con espejo en el switch PCN no reporta tráfico anómalo. La amenaza está contenida — ahora hay que decidir qué tan a fondo se elimina del entorno antes de cerrar el incidente.`
+      `Los logs confirman que el jump server fue tocado pero no hubo pivote exitoso hacia Supervision. El IDS con espejo en el switch Supervision no reporta tráfico anómalo. La amenaza está contenida — ahora hay que decidir qué tan a fondo se elimina del entorno antes de cerrar el incidente.`
     ],
     options:[
       {letter:'A', label:'Reinstalación completa (imagen limpia) del equipo de IT origen y del jump server tocado, usando el servidor de respaldos de la IDMZ.', next:'END_E3',
@@ -577,33 +577,33 @@ const NODES = {
   },
 
   n3temprano2: {
-    time:'08:36', stage:'Erradicación en IDMZ / PCN', phase:'erradicacion',
-    zoneState:{it:'bad',dmz:'alert',pcn:'ok'},
+    time:'08:36', stage:'Erradicación en IDMZ / Supervision', phase:'erradicacion',
+    zoneState:{it:'bad',dmz:'alert',Supervision:'ok'},
     text:[
-      `El aislamiento preventivo IDMZ–PCN ya estaba activo. Se confirma que ningún tráfico malicioso alcanzó a cruzar hacia PCN. Antes de levantar el aislamiento, hay que decidir qué tan a fondo se revisa y limpia el entorno.`
+      `El aislamiento preventivo IDMZ–Supervision ya estaba activo. Se confirma que ningún tráfico malicioso alcanzó a cruzar hacia Supervision. Antes de levantar el aislamiento, hay que decidir qué tan a fondo se revisa y limpia el entorno.`
     ],
     options:[
-      {letter:'A', label:'Reinstalación completa del jump server (desde el servidor de respaldos de la IDMZ) y revisión forense completa de los equipos de PCN que estuvieron expuestos durante el aislamiento.', next:'END_E3',
-        cost:'El aislamiento IDMZ–PCN se extiende varias horas más mientras se hace la revisión forense: el historiador y el acceso remoto siguen interrumpidos ese tiempo adicional.', impact:2,
+      {letter:'A', label:'Reinstalación completa del jump server (desde el servidor de respaldos de la IDMZ) y revisión forense completa de los equipos de Supervision que estuvieron expuestos durante el aislamiento.', next:'END_E3',
+        cost:'El aislamiento IDMZ–Supervision se extiende varias horas más mientras se hace la revisión forense: el historiador y el acceso remoto siguen interrumpidos ese tiempo adicional.', impact:2,
         note:'Erradicación completa antes de levantar el aislamiento: mínimo riesgo de que algo haya quedado sin detectar.'},
-      {letter:'B', label:'Limpieza dirigida del jump server con EDR y muestreo rápido de logs en PCN, sin forense exhaustivo.', next:'END_E3',
+      {letter:'B', label:'Limpieza dirigida del jump server con EDR y muestreo rápido de logs en Supervision, sin forense exhaustivo.', next:'END_E3',
         cost:'El aislamiento se levanta en menos tiempo, con una revisión razonable pero no exhaustiva.', impact:1,
         note:'Erradicación parcial, con una revisión rápida en vez de un forense completo.'},
-      {letter:'C', label:'Levantar el aislamiento en cuanto el jump server queda limpio, sin revisar a fondo el lado de PCN.', next:'END_E3',
+      {letter:'C', label:'Levantar el aislamiento en cuanto el jump server queda limpio, sin revisar a fondo el lado de Supervision.', next:'END_E3',
         cost:'El servicio se restablece lo antes posible, priorizando la continuidad operativa sobre la certeza de la limpieza.', impact:0,
-        note:'Erradicación mínima del lado de PCN: se dio por buena la contención sin confirmar a fondo que nada haya cruzado.'},
+        note:'Erradicación mínima del lado de Supervision: se dio por buena la contención sin confirmar a fondo que nada haya cruzado.'},
     ]
   },
 
   n3frontera: {
-    time:'08:41', stage:'Erradicación en la frontera IDMZ–PCN', phase:'erradicacion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'ok'},
+    time:'08:41', stage:'Erradicación en la frontera IDMZ–Supervision', phase:'erradicacion',
+    zoneState:{it:'bad',dmz:'bad',Supervision:'ok'},
     text:[
-      `El aislamiento de la interfaz IDMZ–PCN detiene el intento de autenticación hacia el switch de capa 3. El IDS de PCN no observa tráfico anómalo adicional. Antes de restablecer el enlace, hay que decidir el nivel de erradicación.`
+      `El aislamiento de la interfaz IDMZ–Supervision detiene el intento de autenticación hacia el switch de capa 3. El IDS de Supervision no observa tráfico anómalo adicional. Antes de restablecer el enlace, hay que decidir el nivel de erradicación.`
     ],
     options:[
       {letter:'A', label:'Reinstalación completa del jump server origen (imagen limpia) y auditoría de las reglas del switch de capa 3 antes de restablecer el enlace.', next:'END_E3',
-        cost:'PCN se queda sin ruta hacia la IDMZ más tiempo del esperado mientras se audita el switch.', impact:2,
+        cost:'Supervision se queda sin ruta hacia la IDMZ más tiempo del esperado mientras se audita el switch.', impact:2,
         note:'Erradicación completa: se reconstruyó el punto de entrada y se auditó la frontera antes de reabrirla.'},
       {letter:'B', label:'Limpieza del jump server con EDR y revisión rápida de logs del switch, sin auditoría completa.', next:'END_E3',
         cost:'El enlace se restablece en un tiempo intermedio, con una revisión razonable.', impact:1,
@@ -616,39 +616,39 @@ const NODES = {
 
   n3frontera2: {
     time:'08:41', stage:'Segundo intento', phase:'contencion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'alert'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'alert'},
     text:[
-      `El operador reporta operación normal del DCS. Pero diez minutos después, el switch de capa 3 registra un segundo intento de autenticación —ahora exitoso— desde el jump server hacia VLAN1 (PCN).`
+      `El operador reporta operación normal del DCS. Pero diez minutos después, el switch de capa 3 registra un segundo intento de autenticación —ahora exitoso— desde el jump server hacia VLAN1 (Supervision).`
     ],
     options:[
-      {letter:'A', label:'Aislar de inmediato VLAN1 en el switch, en la frontera PCN/CN.', next:'n4pcn',
-        cost:'PCN queda aislado de CN: el SCADA y las estaciones de operación en PCN dejan de recibir telemetría en tiempo real del DCS, y los operadores pierden visibilidad de las variables de proceso hasta restablecer el enlace.', impact:3},
-      {letter:'B', label:'Analizar el nuevo evento antes de actuar sobre el switch.', next:'n4pcntarde',
+      {letter:'A', label:'Aislar de inmediato VLAN1 en el switch, en la frontera Supervision/CN.', next:'n4Supervision',
+        cost:'Supervision queda aislado de CN: el SCADA y las estaciones de operación en Supervision dejan de recibir telemetría en tiempo real del DCS, y los operadores pierden visibilidad de las variables de proceso hasta restablecer el enlace.', impact:3},
+      {letter:'B', label:'Analizar el nuevo evento antes de actuar sobre el switch.', next:'n4Supervisiontarde',
         cost:'No hay impacto operativo todavía, pero cada minuto de análisis acerca al artefacto a la frontera con CN.', impact:0},
-      {letter:'C', label:'Escalar a un comité de crisis antes de tocar la configuración del switch.', next:'n4pcntarde',
+      {letter:'C', label:'Escalar a un comité de crisis antes de tocar la configuración del switch.', next:'n4Supervisiontarde',
         cost:'No hay impacto operativo inmediato, pero convocar un comité toma tiempo que ya casi no queda.', impact:0},
     ]
   },
 
   n3riesgo: {
     time:'08:59', stage:'La amenaza avanza sin ser vista', phase:'contencion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'alert'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'alert'},
     text:[
-      `Cuarenta minutos después, el switch de capa 3 (frontera PCN/CN) reporta un intento de autenticación exitoso desde un jump server hacia VLAN1 (PCN). El artefacto pivotó sin ser detectado a tiempo, porque nadie verificó si el bloqueo inicial había sido suficiente.`
+      `Cuarenta minutos después, el switch de capa 3 (frontera Supervision/CN) reporta un intento de autenticación exitoso desde un jump server hacia VLAN1 (Supervision). El artefacto pivotó sin ser detectado a tiempo, porque nadie verificó si el bloqueo inicial había sido suficiente.`
     ],
     options:[
-      {letter:'A', label:'Aislar de inmediato VLAN1 en el switch (deshabilitar el enlace troncal hacia PCN).', next:'n4pcn',
-        cost:'PCN pierde visibilidad de CN: el SCADA deja de recibir telemetría del DCS y los operadores quedan sin monitoreo remoto del proceso mientras dure el aislamiento.', impact:3},
-      {letter:'B', label:'Iniciar un análisis forense antes de actuar sobre el switch.', next:'n4pcntarde',
+      {letter:'A', label:'Aislar de inmediato VLAN1 en el switch (deshabilitar el enlace troncal hacia Supervision).', next:'n4Supervision',
+        cost:'Supervision pierde visibilidad de CN: el SCADA deja de recibir telemetría del DCS y los operadores quedan sin monitoreo remoto del proceso mientras dure el aislamiento.', impact:3},
+      {letter:'B', label:'Iniciar un análisis forense antes de actuar sobre el switch.', next:'n4Supervisiontarde',
         cost:'No hay impacto operativo todavía, pero cada minuto de análisis es tiempo que el artefacto usa para acercarse a CN.', impact:0},
-      {letter:'C', label:'Notificar a gerencia y esperar la instalación de un comité de crisis antes de actuar.', next:'n4pcntarde',
+      {letter:'C', label:'Notificar a gerencia y esperar la instalación de un comité de crisis antes de actuar.', next:'n4Supervisiontarde',
         cost:'No hay impacto operativo inmediato, pero es la opción que más tiempo consume antes de actuar.', impact:0},
     ]
   },
 
   n3demora: {
     time:'09:04', stage:'El tiempo se agota', phase:'contencion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'alert'},
     text:[
       `Pasaron 45 minutos sin una acción efectiva sobre la red OT. El SIEM reporta que el artefacto ya generó tráfico desde el switch de capa 3 hacia VLAN0 (CN), donde está el DCS.`
     ],
@@ -662,28 +662,28 @@ const NODES = {
     ]
   },
 
-  n4pcn: {
-    time:'09:11', stage:'Erradicación en PCN', phase:'erradicacion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'ok'},
+  n4Supervision: {
+    time:'09:11', stage:'Erradicación en Supervision', phase:'erradicacion',
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'ok'},
     text:[
-      `El aislamiento de VLAN1 corta el paso hacia VLAN0 (CN) antes de que el artefacto alcance al DCS. Se confirma que la VLAN de control nunca fue tocada. Antes de restablecer la visibilidad de SCADA, hay que decidir el nivel de erradicación en PCN.`
+      `El aislamiento de VLAN1 corta el paso hacia VLAN0 (CN) antes de que el artefacto alcance al DCS. Se confirma que la VLAN de control nunca fue tocada. Antes de restablecer la visibilidad de SCADA, hay que decidir el nivel de erradicación en Supervision.`
     ],
     options:[
-      {letter:'A', label:'Reinstalación completa de los equipos tocados en PCN e IDMZ, y reconstrucción de la configuración del switch L3 desde el servidor de respaldos.', next:'END_E3',
-        cost:'PCN permanece sin visibilidad de SCADA sobre CN varias horas adicionales mientras se reconstruye el switch desde respaldo.', impact:3,
+      {letter:'A', label:'Reinstalación completa de los equipos tocados en Supervision e IDMZ, y reconstrucción de la configuración del switch L3 desde el servidor de respaldos.', next:'END_E3',
+        cost:'Supervision permanece sin visibilidad de SCADA sobre CN varias horas adicionales mientras se reconstruye el switch desde respaldo.', impact:3,
         note:'Erradicación completa: se reconstruyó la infraestructura de red tocada antes de dar por cerrado el incidente.'},
-      {letter:'B', label:'Escaneo y limpieza dirigida con EDR en los equipos de PCN, sin reconstruir el switch.', next:'END_E3',
+      {letter:'B', label:'Escaneo y limpieza dirigida con EDR en los equipos de Supervision, sin reconstruir el switch.', next:'END_E3',
         cost:'La visibilidad de SCADA se restablece en menos tiempo, con una limpieza razonable pero no forense.', impact:2,
         note:'Erradicación parcial: limpieza dirigida sin reconstrucción completa de la infraestructura.'},
-      {letter:'C', label:'Bloquear el IOC y dejar monitoreo reforzado del IDS, sin tocar físicamente los equipos de PCN.', next:'END_E3',
+      {letter:'C', label:'Bloquear el IOC y dejar monitoreo reforzado del IDS, sin tocar físicamente los equipos de Supervision.', next:'END_E3',
         cost:'La visibilidad de SCADA se restablece de inmediato.', impact:0,
         note:'Erradicación mínima: se confía en el monitoreo reforzado en vez de una limpieza directa de los equipos.'},
     ]
   },
 
-  n4pcntarde: {
+  n4Supervisiontarde: {
     time:'09:22', stage:'La amenaza cruza a CN', phase:'contencion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'bad'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'bad'},
     text:[
       `El artefacto cruza hacia VLAN0 (CN). El SIEM y el HMI del DCS muestran tráfico y comandos anómalos dirigidos al controlador del horno.`
     ],
@@ -699,7 +699,7 @@ const NODES = {
 
   n4cn: {
     time:'09:09', stage:'Acción en sitio', phase:'contencion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'alert'},
     text:[
       `Se desconecta en sitio el enlace hacia el controlador del horno antes de que el ataque complete su objetivo. El SCADA vuelve a mostrar parámetros normales tras la acción.`
     ],
@@ -711,7 +711,7 @@ const NODES = {
 
   n4cn_erad: {
     time:'09:14', stage:'Erradicación en CN', phase:'erradicacion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'alert'},
     text:[
       `El controlador quedó desconectado a tiempo. Antes de reconectarlo y dar por cerrado el incidente, hay que decidir cómo se verifica que la lógica de control no haya sido alterada.`
     ],
@@ -730,7 +730,7 @@ const NODES = {
 
   n4cntarde: {
     time:'09:18', stage:'La temperatura sube', phase:'contencion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'bad'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'bad'},
     text:[
       `Mientras se espera autorización, el HMI del DCS muestra un incremento anómalo y sostenido en la temperatura del horno. Suenan las alarmas del proceso.`
     ],
@@ -746,7 +746,7 @@ const NODES = {
 
   n4cnvalida: {
     time:'09:11', stage:'Validación del operador', phase:'contencion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'alert'},
     text:[
       `El operador confirma valores anómalos en el HMI, pero el proceso físico aún no ha reaccionado. Todavía hay margen para actuar.`
     ],
@@ -762,7 +762,7 @@ const NODES = {
 
   n5finalmixed: {
     time:'09:27', stage:'Contención insuficiente', phase:'contencion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'bad'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'bad'},
     text:[
       `El aislamiento remoto llega tarde: el controlador ya había recibido el comando que incrementa el set point de temperatura. Suena una alarma crítica en el HMI. El ingeniero del horno se encuentra en el área, realizando una inspección de rutina.`
     ],
@@ -780,7 +780,7 @@ const NODES = {
 
   n6lastchance: {
     time:'09:29', stage:'Última ventana', phase:'contencion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'bad'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'bad'},
     text:[
       `La alerta por radio sale de inmediato. Todo depende de si el ingeniero alcanza a retirarse y el ESD manual se ejecuta antes de que la temperatura llegue a un nivel peligroso.`
     ],
@@ -798,12 +798,12 @@ const NODES = {
 
   n6lastchance_erad: {
     time:'09:45', stage:'Erradicación tras el ESD', phase:'erradicacion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'alert'},
     text:[
-      `El horno está detenido de forma segura y no hubo heridos. Antes de reiniciar producción, hay que decidir qué tan a fondo se erradica el artefacto de toda la cadena IT–IDMZ–PCN–CN.`
+      `El horno está detenido de forma segura y no hubo heridos. Antes de reiniciar producción, hay que decidir qué tan a fondo se erradica el artefacto de toda la cadena IT–IDMZ–Supervision–CN.`
     ],
     options:[
-      {letter:'A', label:'Erradicación completa: reinstalación completa de todos los equipos tocados (origen en IT, jump server, equipos de PCN) usando el servidor de respaldos, y validación de la lógica del controlador antes de reiniciar.', next:'END_E2',
+      {letter:'A', label:'Erradicación completa: reinstalación completa de todos los equipos tocados (origen en IT, jump server, equipos de Supervision) usando el servidor de respaldos, y validación de la lógica del controlador antes de reiniciar.', next:'END_E2',
         cost:'El rearranque del horno se retrasa varias horas adicionales mientras se completa la erradicación en toda la cadena.', impact:3,
         note:'Erradicación completa antes de reiniciar: mínimo riesgo de reinfección.'},
       {letter:'B', label:'Limpieza dirigida en los puntos clave (jump server y estación de ingeniería) sin tocar cada equipo de la cadena.', next:'END_E2',
@@ -817,7 +817,7 @@ const NODES = {
 
   n5finalcontain: {
     time:'09:25', stage:'Contención tardía pero efectiva', phase:'contencion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'alert'},
     text:[
       `La desconexión física del controlador se ejecuta antes de que el comando malicioso tenga efecto sobre la temperatura del horno.`
     ],
@@ -829,7 +829,7 @@ const NODES = {
 
   n5finalcontain_erad: {
     time:'09:30', stage:'Erradicación en CN', phase:'erradicacion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'alert'},
     text:[
       `El controlador quedó desconectado justo a tiempo, sin heridos. Antes de reconectarlo, hay que decidir cómo se verifica que la lógica de control no haya sido alterada.`
     ],
@@ -848,7 +848,7 @@ const NODES = {
 
   n5finalcontain2: {
     time:'09:20', stage:'Parada de emergencia ejecutada', phase:'contencion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'alert'},
     text:[
       `La orden de parada se ejecuta a tiempo. El horno se detiene de forma segura antes de que la temperatura alcance un nivel peligroso.`
     ],
@@ -860,12 +860,12 @@ const NODES = {
 
   n5finalcontain2_erad: {
     time:'09:35', stage:'Erradicación antes del rearranque', phase:'erradicacion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'alert'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'alert'},
     text:[
-      `El horno está detenido de forma segura. Antes de reiniciar producción, hay que decidir qué tan a fondo se erradica el artefacto de toda la cadena IT–IDMZ–PCN–CN.`
+      `El horno está detenido de forma segura. Antes de reiniciar producción, hay que decidir qué tan a fondo se erradica el artefacto de toda la cadena IT–IDMZ–Supervision–CN.`
     ],
     options:[
-      {letter:'A', label:'Erradicación completa: reinstalación completa de todos los equipos tocados (origen en IT, jump server, equipos de PCN) usando el servidor de respaldos, y validación de la lógica del controlador antes de reiniciar.', next:'END_E2',
+      {letter:'A', label:'Erradicación completa: reinstalación completa de todos los equipos tocados (origen en IT, jump server, equipos de Supervision) usando el servidor de respaldos, y validación de la lógica del controlador antes de reiniciar.', next:'END_E2',
         cost:'El rearranque del horno se retrasa varias horas adicionales mientras se completa la erradicación en toda la cadena.', impact:3,
         note:'Erradicación completa antes de reiniciar: mínimo riesgo de reinfección.'},
       {letter:'B', label:'Limpieza dirigida en los puntos clave (jump server y estación de ingeniería) sin tocar cada equipo de la cadena.', next:'END_E2',
@@ -879,7 +879,7 @@ const NODES = {
 
   n5finalfail: {
     time:'09:31', stage:'Sin acción a tiempo', phase:'contencion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'bad'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'bad'},
     text:[
       `La autorización nunca llega a tiempo. El proceso de aprobación consumió el margen que quedaba entre la detección y la manipulación física del horno.`
     ],
@@ -892,7 +892,7 @@ const NODES = {
 
   n5finalrisky: {
     time:'09:29', stage:'Corrección manual bajo presión', phase:'contencion',
-    zoneState:{it:'bad',dmz:'bad',pcn:'bad',cn:'bad'},
+    zoneState:{it:'bad',dmz:'bad',Supervision:'bad',cn:'bad'},
     text:[
       `El operador intenta corregir el set point manualmente mientras el proceso sigue activo, sin detenerlo. La corrección no alcanza a compensar el incremento de temperatura a tiempo.`
     ],
